@@ -837,3 +837,9 @@ document.getElementById('importFile').addEventListener('change', async e => {
   };
   reader.readAsText(file);
 });
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+  });
+}
