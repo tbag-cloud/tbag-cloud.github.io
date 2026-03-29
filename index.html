@@ -352,9 +352,16 @@ async function init(){
   show('authScreen');
 
   try{
-    sb=window.supabase.createClient(SUPA_URL,SUPA_KEY,{
-      auth:{detectSessionInUrl:false,persistSession:true}
+  sb=window.supabase.createClient(SUPA_URL,SUPA_KEY,{
+      auth:{
+        detectSessionInUrl:false,
+        persistSession:true,
+        storageKey:'todo-app-auth',
+        storage:window.localStorage,
+        lock:(name,acquireTimeout,fn)=>fn()
+      }
     });
+    window._sb = sb; // expose for debugging
   }catch(e){return;}
 
   // Always register listener first
@@ -437,11 +444,13 @@ function leaveSyncedMode(){
 async function loadSynced(){
   dot('syncing');
   const {data:{session}}=await sb.auth.getSession();
+  console.log('[loadSynced] session:', session?.user?.email, 'token:', session?.access_token?.slice(0,15));
   if(!session){dot('err');toast('session lost — please sign in again','var(--danger)');leaveSyncedMode();return;}
   const [{data:tData,error:tErr},{data:aData,error:aErr}]=await Promise.all([
     sb.from('todos').select('*').order('created',{ascending:false}),
     sb.from('attachments').select('*').order('created',{ascending:true})
   ]);
+  console.log('[loadSynced] todos:', tData?.length, 'err:', tErr?.message);
   if(tErr){dot('err');toast('load error: '+tErr.message,'var(--danger)');return;}
   todos=(tData||[]).map(t=>({...t,desc:t.description||''}));
   attMap={};
@@ -450,6 +459,7 @@ async function loadSynced(){
       id:a.id,name:a.name,size:a.size,mime:a.mime_type,path:a.path,todoId:a.todo_id
     });
   });
+  console.log('[loadSynced] todos array length after mapping:', todos.length);
   dot('ok'); render(); updateStorageMeter();
 }
 
