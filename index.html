@@ -162,7 +162,7 @@
 <body>
 
 
-<div id="authScreen">
+<div id="authScreen" style="display:none">
   <h2>// <span>TODO</span></h2>
   <p>Sign in to sync across devices with real-time CDS and Google Drive attachments — or continue as a guest using local storage with import/export.</p>
   <div class="auth-btns">
@@ -275,6 +275,9 @@ function hide(id){const el=document.getElementById(id);if(el)el.style.display='n
 // INIT
 // ─────────────────────────────────────────────────────────────────────────────
 async function init(){
+  // Always show auth screen first
+  show('authScreen');
+
   try {
     sb = window.supabase.createClient(SUPA_URL, SUPA_KEY, {
       auth: { detectSessionInUrl: true, persistSession: true }
@@ -283,28 +286,29 @@ async function init(){
     return;
   }
 
-  // If landing back from OAuth, the hash token needs a moment to be processed.
-  // Give Supabase time to parse the URL hash before we check the session.
-  await new Promise(r => setTimeout(r, 100));
+  // Small delay so detectSessionInUrl can parse hash before getSession
+  await new Promise(r => setTimeout(r, 200));
 
   const { data: { session } } = await sb.auth.getSession();
   if(session){
-    if(window.location.hash.includes('access_token')){
-      history.replaceState(null, '', window.location.pathname);
-    }
+    history.replaceState(null, '', window.location.pathname);
     await enterSyncedMode(session.user);
+    return;
   }
 
+  // Still listen for sign in / sign out
   sb.auth.onAuthStateChange(async(event, session)=>{
     if(event === 'SIGNED_IN' && session && !currentUser){
-      if(window.location.hash.includes('access_token')){
-        history.replaceState(null, '', window.location.pathname);
-      }
+      history.replaceState(null, '', window.location.pathname);
       await enterSyncedMode(session.user);
     }
     if(event === 'SIGNED_OUT'){ leaveSyncedMode(); }
   });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────────────────────
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GUEST MODE
