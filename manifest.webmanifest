@@ -2,6 +2,8 @@
   "name": "TODO",
   "short_name": "TODO",
   "description": "A synced todo app with attachments, guest mode, and admin tools made by the big themi.",
+  "lang": "en-GB",
+  "dir": "ltr",
   "id": "/",
   "start_url": "./",
   "scope": "./",
