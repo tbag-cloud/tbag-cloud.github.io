@@ -2,7 +2,9 @@
 const SUPA_URL = 'https://hxkjwebubmdqjzwmnvrh.supabase.co';
 const SUPA_KEY = 'sb_publishable_iZkIPeb7P6Eb8RCXC1hNOQ_GhIUlnj0';
 const MAX_GUEST_FILE = 5 * 1024 * 1024;
-const MAX_SYNC_FILE  = 50 * 1024 * 1024;
+const MAX_SYNC_FILE  = 1024 * 1024 * 1024;
+const SYNC_STORAGE_LIMIT = 1024 * 1024 * 1024;
+const DATABASE_LIMIT_ESTIMATE = 500 * 1024 * 1024;
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
@@ -24,7 +26,12 @@ const LS_ATTS  = 'todo_v3_atts';
 const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 const fmtDate = iso => new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}).toUpperCase();
-const fmtSize = b => b<1024?b+'B':b<1048576?(b/1024).toFixed(1)+'KB':(b/1048576).toFixed(1)+'MB';
+const fmtSize = b => {
+  if (b < 1024) return b + 'B';
+  if (b < 1024 ** 2) return (b / 1024).toFixed(1) + 'KB';
+  if (b < 1024 ** 3) return (b / (1024 ** 2)).toFixed(1) + 'MB';
+  return (b / (1024 ** 3)).toFixed(2) + 'GB';
+};
 const mimeIcon = m => m.startsWith('image/')?'🖼':m==='application/pdf'?'📄':m.startsWith('video/')?'🎬':m.startsWith('audio/')?'🎵':m.includes('zip')?'🗜':'📎';
 
 // Normalize DB row → JS object
@@ -81,10 +88,14 @@ function updateStorageMeter() {
   const bar = document.getElementById('storageBar');
   const fill = document.getElementById('storageFill');
   const label = document.getElementById('storageLabel');
+  const dbBar = document.getElementById('dbStorageBar');
+  const dbFill = document.getElementById('dbStorageFill');
+  const dbLabel = document.getElementById('dbStorageLabel');
   bar.className = 'storage-bar visible';
 
   if (mode === 'guest') {
     document.getElementById('btnClearAtts').style.display = 'none';
+    dbBar.className = 'storage-bar';
     let bytes = 0;
     try { bytes = (localStorage.getItem(LS_TODOS)||'').length + (localStorage.getItem(LS_ATTS)||'').length; } catch {}
     const pct = Math.min(100, (bytes / 5000000) * 100);
@@ -93,10 +104,18 @@ function updateStorageMeter() {
     label.textContent = 'local storage: ' + fmtSize(bytes) + ' / ~5MB';
   } else {
     const bytes = Object.values(attMap).flat().reduce((s,a) => s + (a.size||0), 0);
-    const pct = Math.min(100, (bytes / (50*1024*1024)) * 100);
+    const pct = Math.min(100, (bytes / SYNC_STORAGE_LIMIT) * 100);
     fill.className = 'storage-fill' + (pct > 80 ? ' full' : pct > 60 ? ' warn' : '');
     fill.style.width = pct.toFixed(1) + '%';
-    label.textContent = 'supabase storage: ' + fmtSize(bytes) + ' / 50MB (' + pct.toFixed(0) + '%)';
+    label.textContent = 'supabase storage: ' + fmtSize(bytes) + ' / 1GB (' + pct.toFixed(0) + '%)';
+
+    const todoBytes = new Blob([JSON.stringify(todos)]).size;
+    const dbPct = Math.min(100, (todoBytes / DATABASE_LIMIT_ESTIMATE) * 100);
+    dbBar.className = 'storage-bar visible';
+    dbFill.className = 'storage-fill' + (dbPct > 80 ? ' full' : dbPct > 60 ? ' warn' : '');
+    dbFill.style.width = dbPct.toFixed(1) + '%';
+    dbLabel.textContent = 'database estimate (todos): ' + fmtSize(todoBytes) + ' / ~500MB (' + dbPct.toFixed(0) + '%)';
+
     // Show clear-done-attachments button if relevant
     const doneIds = new Set(todos.filter(t=>t.done).map(t=>t.id));
     const hasDoneAtts = Object.keys(attMap).some(id => doneIds.has(id) && attMap[id].length > 0);
@@ -345,7 +364,7 @@ async function uploadFile(todoId, rawFile) {
     };
     reader.readAsDataURL(file);
   } else {
-    if (file.size > MAX_SYNC_FILE) { toast('max 50MB per file', 'var(--accent2)'); return; }
+    if (file.size > MAX_SYNC_FILE) { toast('max 1GB per file', 'var(--accent2)'); return; }
     const ext = file.name.split('.').pop();
     const path = currentUser.id + '/' + todoId + '/' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.' + ext;
     dot('syncing');
@@ -549,7 +568,7 @@ function buildAttPanel(todoId, atts) {
       + (isImg && a.path ? '<img class="att-img" data-path="' + esc(a.path) + '" src="" alt="' + esc(a.name) + '" data-att="' + a.id + '">' : '');
   }).join('');
 
-  const lim = mode === 'guest' ? 'max 5MB, images compressed' : 'max 50MB, images compressed';
+  const lim = mode === 'guest' ? 'max 5MB, images compressed' : 'max 1GB, images compressed';
   return '<div class="att-panel open">'
     + '<div class="att-list">' + items + '</div>'
     + '<div class="att-upload-row">'
