@@ -844,7 +844,7 @@ el.btnGoogle?.addEventListener('click', async () => {
   const { error } = await sb.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: window.location.href,
+      redirectTo: 'https://tbag-cloud.github.io/', // <- your app landing page
     },
   });
 
