@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIG
 // ─────────────────────────────────────────────────────────────────────────────
-const SUPA_URL = 'https://hxkjwebubmdqjzwmnvrh.supabase.co';
+const SUPA_URL = 'https://hxkjwebubmdqjzwmnvrh.supabase.co/auth/v1/callback';
 const SUPA_KEY = 'sb_publishable_iZkIPeb7P6Eb8RCXC1hNOQ_GhIUlnj0';
 
 const LS_TODOS = 'todo_v3_todos';
