@@ -352,20 +352,15 @@ async function init(){
   show('authScreen');
 
   try{
-  sb=window.supabase.createClient(SUPA_URL,SUPA_KEY,{
-      auth:{
-        detectSessionInUrl:false,
-        persistSession:true,
-        storageKey:'todo-app-auth',
-        storage:window.localStorage,
-        lock:(name,acquireTimeout,fn)=>fn()
-      }
+    sb=window.supabase.createClient(SUPA_URL,SUPA_KEY,{
+      auth:{detectSessionInUrl:false,persistSession:true,storageKey:'todo-app-auth'}
     });
-    window._sb = sb; // expose for debugging
-  }catch(e){return;}
+    window._sb=sb;
+  }catch(e){console.error('Supabase init failed:',e);return;}
 
   // Always register listener first
   sb.auth.onAuthStateChange(async(event,session)=>{
+    console.log('[auth]',event,session?.user?.email);
     if((event==='SIGNED_IN'||event==='INITIAL_SESSION')&&session&&!currentUser){
       history.replaceState(null,'',window.location.pathname);
       await enterSyncedMode(session.user);
@@ -377,11 +372,8 @@ async function init(){
   const hash=window.location.hash;
   if(hash&&hash.includes('access_token')){
     const params=new URLSearchParams(hash.replace(/^#+/,''));
-    const at=params.get('access_token'), rt=params.get('refresh_token');
-    if(at&&rt){
-      await sb.auth.setSession({access_token:at,refresh_token:rt});
-      // onAuthStateChange SIGNED_IN fires
-    }
+    const at=params.get('access_token'),rt=params.get('refresh_token');
+    if(at&&rt) await sb.auth.setSession({access_token:at,refresh_token:rt});
   }
 }
 
@@ -435,7 +427,7 @@ async function enterSyncedMode(user){
 }
 
 function leaveSyncedMode(){
-  mode='guest'; currentUser=null; todos=[]; attMap=[];
+  mode='guest'; currentUser=null; todos=[]; attMap={};
   if(realtimeCh){sb.removeChannel(realtimeCh);realtimeCh=null;}
   document.getElementById('appScreen').style.display='none';
   document.getElementById('authScreen').style.display='block';
@@ -659,6 +651,7 @@ function getFiltered(){
 
 function render(){
   const list=getFiltered();
+  console.log('[render] todos:',todos.length,'filtered:',list.length,'filter:',filter,'search:',searchQ,'mode:',mode,'appScreen:',document.getElementById('appScreen')?.style.display);
   const done=todos.filter(t=>t.done).length;
   const active=todos.length-done;
   document.getElementById('statsLabel').textContent=active+' active · '+done+' done'+(searchQ?' · '+list.length+' results':'');
