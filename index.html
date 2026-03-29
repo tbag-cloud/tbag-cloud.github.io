@@ -278,13 +278,33 @@ async function init(){
   try {
     sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
   } catch(e) {
-    // Supabase failed to load — stay on auth screen, guest mode still works
-    return;
+    return; // Supabase failed to load — guest mode still works
+  }
+
+  // When Supabase redirects back after OAuth it puts the token in the URL hash.
+  // In a plain HTML file we need to explicitly tell Supabase to pick it up.
+  if(window.location.hash && window.location.hash.includes('access_token')){
+    // Strip any doubled ## that can happen with GitHub Pages root repos
+    const hash = window.location.hash.replace(/^#+/, '#');
+    const params = new URLSearchParams(hash.slice(1));
+    const accessToken = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+    if(accessToken && refreshToken){
+      const {data, error} = await sb.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken
+      });
+      if(!error && data.session){
+        // Clean the URL
+        history.replaceState(null, '', window.location.pathname);
+        await enterSyncedMode(data.session.user);
+        return;
+      }
+    }
   }
 
   const {data:{session}} = await sb.auth.getSession();
   if(session){ await enterSyncedMode(session.user); }
-  // else auth screen is already visible (default in HTML)
 
   sb.auth.onAuthStateChange(async(event,session)=>{
     if(event==='SIGNED_IN'&&session){ hide('authScreen'); await enterSyncedMode(session.user); }
