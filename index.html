@@ -17,8 +17,8 @@
   body::before{content:'';position:fixed;top:-200px;left:-200px;width:500px;height:500px;background:radial-gradient(circle,rgba(124,111,255,0.08) 0%,transparent 70%);pointer-events:none;animation:drift 12s ease-in-out infinite alternate;}
   @keyframes drift{to{transform:translate(80px,120px);}}
 
-  /* ── AUTH SCREEN ── */
-  #authScreen{max-width:420px;margin:80px auto;}
+  /* AUTH */
+  #authScreen{max-width:420px;margin:80px auto;display:none;}
   #authScreen h2{font-family:'Syne',sans-serif;font-size:2.2rem;font-weight:800;margin-bottom:6px;}
   #authScreen h2 span{color:var(--accent);}
   #authScreen p{font-size:0.75rem;color:var(--muted);margin-bottom:32px;line-height:1.7;}
@@ -30,31 +30,44 @@
   .guest-btn:hover{border-color:var(--muted);color:var(--text);}
   .auth-divider{text-align:center;font-size:0.65rem;color:var(--muted);letter-spacing:0.1em;margin:4px 0;}
 
-  /* ── APP ── */
+  /* APP */
   #appScreen{display:none;max-width:720px;margin:0 auto;}
-
-  header{margin-bottom:40px;}
+  header{margin-bottom:36px;}
   .header-top{display:flex;align-items:center;gap:10px;margin-bottom:4px;flex-wrap:wrap;}
   h1{font-family:'Syne',sans-serif;font-size:2.4rem;font-weight:800;letter-spacing:-0.04em;}
   h1 span{color:var(--accent);}
   .stats{font-size:0.7rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;flex:1;}
-
   .user-area{display:flex;align-items:center;gap:8px;}
   .avatar{width:26px;height:26px;border-radius:50%;border:1px solid var(--border);object-fit:cover;}
   .avatar-ph{width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:var(--muted);}
   .mode-badge{font-size:0.6rem;letter-spacing:0.1em;padding:3px 8px;border:1px solid var(--border);color:var(--muted);text-transform:uppercase;}
   .mode-badge.synced-mode{border-color:var(--green);color:var(--green);}
   .mode-badge.guest-mode{border-color:var(--muted);color:var(--muted);}
-
   .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);transition:background 0.3s;flex-shrink:0;}
   .sync-dot.syncing{background:var(--accent);animation:pulse 0.7s ease-in-out infinite alternate;}
   .sync-dot.ok{background:var(--green);}
   .sync-dot.err{background:var(--danger);}
   @keyframes pulse{to{opacity:0.2;}}
-
   .hdr-btn{background:none;border:1px solid var(--border);color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:0.62rem;padding:5px 10px;cursor:pointer;letter-spacing:0.06em;transition:all 0.15s;}
   .hdr-btn:hover{border-color:var(--accent);color:var(--accent);}
   .hdr-btn.danger:hover{border-color:var(--danger);color:var(--danger);}
+
+  /* STORAGE METER */
+  .storage-bar{margin-top:8px;display:none;}
+  .storage-bar.visible{display:block;}
+  .storage-label{font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;margin-bottom:4px;}
+  .storage-track{height:3px;background:var(--border);width:100%;}
+  .storage-fill{height:100%;background:var(--green);transition:width 0.5s;}
+  .storage-fill.warn{background:var(--accent2);}
+  .storage-fill.danger{background:var(--danger);}
+
+  /* SEARCH */
+  .search-wrap{position:relative;margin-bottom:12px;}
+  .search-inp{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.8rem;padding:10px 36px 10px 14px;outline:none;transition:border-color 0.2s;}
+  .search-inp:focus{border-color:var(--accent);}
+  .search-inp::placeholder{color:var(--muted);}
+  .search-clear{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.9rem;display:none;}
+  .search-clear.vis{display:block;}
 
   .toolbar{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
   .filter-btn{background:none;border:1px solid var(--border);color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:0.7rem;padding:6px 14px;cursor:pointer;letter-spacing:0.08em;text-transform:uppercase;transition:all 0.15s;}
@@ -62,9 +75,10 @@
   .filter-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(124,111,255,0.1);}
   .io-btn{background:none;border:1px solid var(--border);color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:0.7rem;padding:6px 14px;cursor:pointer;letter-spacing:0.08em;text-transform:uppercase;transition:all 0.15s;}
   .io-btn:hover{border-color:var(--green);color:var(--green);}
+  .io-btn.warn-btn:hover{border-color:var(--accent2);color:var(--accent2);}
 
-  /* ── ADD FORM ── */
-  .add-form{display:flex;flex-direction:column;margin-bottom:28px;border:1px solid var(--border);background:var(--surface);transition:border-color 0.2s;}
+  /* ADD FORM */
+  .add-form{display:flex;flex-direction:column;margin-bottom:24px;border:1px solid var(--border);background:var(--surface);transition:border-color 0.2s;}
   .add-form:focus-within{border-color:var(--accent);}
   .add-form-top{display:flex;}
   .add-form input[type=text]{flex:1;background:none;border:none;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.9rem;padding:13px 16px;outline:none;}
@@ -76,35 +90,37 @@
   .add-btn:active{transform:scale(0.96);}
   #newDesc{background:none;border:none;border-top:1px solid var(--border);color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:0.78rem;padding:10px 16px;outline:none;resize:none;width:100%;line-height:1.6;max-height:120px;overflow-y:auto;}
 
-  /* ── TODO LIST ── */
+  /* TODO LIST */
   .todo-list{display:flex;flex-direction:column;gap:2px;}
   .todo-item{background:var(--surface);border:1px solid transparent;display:grid;grid-template-columns:36px 1fr auto;align-items:start;transition:border-color 0.15s,background 0.15s;animation:slideIn 0.2s ease;position:relative;}
   @keyframes slideIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
   .todo-item:hover{border-color:var(--border);background:var(--surface2);}
   .todo-item.done{opacity:0.42;}
-
   .pbar{width:3px;position:absolute;left:0;top:0;bottom:0;}
   .pbar.high{background:var(--accent2);}
   .pbar.medium{background:var(--accent);}
   .pbar.low{background:var(--muted);}
-
   .check-area{display:flex;align-items:flex-start;justify-content:center;cursor:pointer;padding:16px 0 14px 14px;}
   .check-box{width:16px;height:16px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:all 0.15s;flex-shrink:0;margin-top:1px;}
   .todo-item:hover .check-box{border-color:var(--accent);}
   .todo-item.done .check-box{background:var(--accent);border-color:var(--accent);}
   .check-box::after{content:'✓';color:white;font-size:0.65rem;display:none;}
   .todo-item.done .check-box::after{display:block;}
-
   .todo-body{padding:13px 12px;min-width:0;}
   .todo-text{font-size:0.88rem;color:var(--text);word-break:break-word;line-height:1.5;}
   .todo-item.done .todo-text{text-decoration:line-through;color:var(--muted);}
   .todo-meta{font-size:0.62rem;color:var(--muted);margin-top:3px;letter-spacing:0.05em;}
-
   .todo-actions{display:flex;align-items:flex-start;padding:8px 6px 0 0;opacity:0;transition:opacity 0.15s;}
   .todo-item:hover .todo-actions{opacity:1;}
   .act{background:none;border:none;color:var(--muted);font-size:0.68rem;padding:5px 7px;cursor:pointer;font-family:'JetBrains Mono',monospace;transition:color 0.15s;letter-spacing:0.05em;white-space:nowrap;}
   .act:hover{color:var(--accent);}
   .act.del:hover{color:var(--danger);}
+
+  /* CONFIRM DELETE */
+  .del-confirm{display:flex;gap:4px;align-items:center;}
+  .del-confirm span{font-size:0.62rem;color:var(--danger);}
+  .del-yes{color:var(--danger)!important;}
+  .del-no{color:var(--muted)!important;}
 
   /* Edit */
   .edit-inp{background:none;border:none;border-bottom:1px solid var(--accent);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.88rem;outline:none;width:100%;padding:2px 0;}
@@ -118,12 +134,10 @@
   .expand-btn:hover{color:var(--accent);}
   .expand-btn .arr{display:inline-block;transition:transform 0.2s;font-style:normal;}
   .expand-btn.open .arr{transform:rotate(90deg);}
-
-  /* Description */
   .todo-desc{font-size:0.75rem;color:var(--muted);margin-top:6px;line-height:1.6;white-space:pre-wrap;word-break:break-word;border-left:2px solid var(--border);padding-left:10px;display:none;}
   .todo-desc.open{display:block;}
 
-  /* Attachments panel */
+  /* Attachments */
   .att-panel{margin-top:10px;display:none;}
   .att-panel.open{display:block;}
   .att-list{display:flex;flex-direction:column;gap:3px;margin-bottom:8px;}
@@ -135,47 +149,50 @@
   .att-rm{background:none;border:none;color:var(--muted);cursor:pointer;padding:0 2px;font-size:0.8rem;transition:color 0.15s;flex-shrink:0;}
   .att-rm:hover{color:var(--danger);}
   .att-img{width:100%;max-height:150px;object-fit:cover;border:1px solid var(--border);margin-top:3px;display:block;cursor:pointer;}
-  .att-upload-row{display:flex;gap:8px;flex-wrap:wrap;}
+  .att-upload-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
   .att-up-btn{background:none;border:1px dashed var(--border);color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:0.62rem;padding:5px 12px;cursor:pointer;letter-spacing:0.06em;transition:all 0.15s;}
   .att-up-btn:hover{border-color:var(--accent);color:var(--accent);}
-  .att-prog{font-size:0.62rem;color:var(--accent);letter-spacing:0.06em;display:none;align-self:center;}
+  .att-prog{font-size:0.62rem;color:var(--accent);letter-spacing:0.06em;display:none;}
+  .compress-note{font-size:0.58rem;color:var(--muted);letter-spacing:0.04em;}
 
   /* Empty */
   .empty{text-align:center;padding:60px 0;color:var(--muted);}
   .empty .big{font-size:2.8rem;margin-bottom:10px;}
   .empty p{font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;}
 
-  /* Bottom bar */
+  /* Bottom */
   .bottom-bar{display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:14px;border-top:1px solid var(--border);font-size:0.68rem;color:var(--muted);}
   .clear-btn{background:none;border:none;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:0.68rem;cursor:pointer;letter-spacing:0.06em;transition:color 0.15s;}
   .clear-btn:hover{color:var(--danger);}
 
+  /* Modal (image preview) */
+  .img-modal{position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;align-items:center;justify-content:center;z-index:9999;cursor:pointer;}
+  .img-modal img{max-width:90%;max-height:85%;object-fit:contain;}
+  .img-modal-close{position:absolute;top:18px;right:22px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.8rem;padding:6px 14px;cursor:pointer;}
+  .img-modal-dl{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:var(--accent);border:none;color:white;font-family:'JetBrains Mono',monospace;font-size:0.75rem;padding:8px 18px;cursor:pointer;}
+
   /* Toast */
-  .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--surface2);border:1px solid var(--border);color:var(--green);font-family:'JetBrains Mono',monospace;font-size:0.72rem;padding:9px 18px;letter-spacing:0.08em;opacity:0;transition:opacity 0.2s,transform 0.2s;pointer-events:none;white-space:nowrap;z-index:999;}
+  .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--surface2);border:1px solid var(--border);color:var(--green);font-family:'JetBrains Mono',monospace;font-size:0.72rem;padding:9px 18px;letter-spacing:0.08em;opacity:0;transition:opacity 0.2s,transform 0.2s;pointer-events:none;white-space:nowrap;z-index:9998;}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-
-
 
   input[type=file]{display:none;}
 </style>
 </head>
 <body>
 
-
-<div id="authScreen" style="display:none">
+<div id="authScreen">
   <h2>// <span>TODO</span></h2>
-  <p>Sign in to sync across devices with real-time CDS and Google Drive attachments — or continue as a guest using local storage with import/export.</p>
+  <p>Sign in to sync across devices — or continue as a guest with local storage, import/export, and file attachments.</p>
   <div class="auth-btns">
     <button class="google-btn" id="btnGoogle">
       <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-      SIGN IN WITH GOOGLE (SYNC + DRIVE)
+      SIGN IN WITH GOOGLE (SYNC)
     </button>
     <div class="auth-divider">— OR —</div>
     <button class="guest-btn" id="btnGuest">◈ CONTINUE AS GUEST (LOCAL ONLY)</button>
   </div>
 </div>
 
-<!-- Main app -->
 <div id="appScreen">
   <header>
     <div class="header-top">
@@ -190,15 +207,26 @@
         <button class="hdr-btn danger" id="btnSignOut" style="display:none">SIGN OUT</button>
       </div>
     </div>
+    <div class="storage-bar" id="storageBar">
+      <div class="storage-label" id="storageLabel">storage: —</div>
+      <div class="storage-track"><div class="storage-fill" id="storageFill" style="width:0%"></div></div>
+    </div>
     <div class="toolbar">
       <button class="filter-btn active" data-f="all">ALL</button>
       <button class="filter-btn" data-f="active">ACTIVE</button>
       <button class="filter-btn" data-f="done">DONE</button>
+      <button class="filter-btn" data-f="high">🔴 HIGH</button>
       <button class="io-btn" id="btnExport">↑ EXPORT</button>
       <button class="io-btn" id="btnImport">↓ IMPORT</button>
+      <button class="io-btn warn-btn" id="btnClearAtts" style="display:none">🗑 CLEAR DONE ATTS</button>
       <input type="file" id="importFile" accept=".json">
     </div>
   </header>
+
+  <div class="search-wrap">
+    <input class="search-inp" id="searchInp" placeholder="search tasks..." autocomplete="off">
+    <button class="search-clear" id="searchClear">×</button>
+  </div>
 
   <div class="add-form">
     <div class="add-form-top">
@@ -224,32 +252,30 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// ─────────────────────────────────────────────────────────────────────────────
-// CONFIG — keys hardcoded, no setup screen needed
-// ─────────────────────────────────────────────────────────────────────────────
+// ── KEYS ─────────────────────────────────────────────────────────────────────
 const SUPA_URL = 'https://hxkjwebubmdqjzwmnvrh.supabase.co';
 const SUPA_KEY = 'sb_publishable_iZkIPeb7P6Eb8RCXC1hNOQ_GhIUlnj0';
+// Supabase free tier: 50MB storage total, max file size 50MB per upload
+const SUPA_MAX_FILE = 50 * 1024 * 1024;
+const SUPA_STORAGE_LIMIT = 50 * 1024 * 1024; // shown in meter
 
-// ─────────────────────────────────────────────────────────────────────────────
-// STATE
-// ─────────────────────────────────────────────────────────────────────────────
+// ── STATE ─────────────────────────────────────────────────────────────────────
 let sb = null;
 let mode = 'guest'; // 'guest' | 'synced'
 let currentUser = null;
 let todos = [];
-let attMap = {}; // todoId -> [{id,name,size,mime,url,path?,driveId?}]
+let attMap = {}; // todoId -> [{id,name,size,mime,dataUrl?,path?,url?}]
 let filter = 'all';
+let searchQ = '';
 let editingId = null;
+let confirmDeleteId = null;
 let expandedIds = new Set();
 let openAttIds = new Set();
 let realtimeCh = null;
+const LS_TODOS = 'todo_v3_todos';
+const LS_ATTS  = 'todo_v3_atts';
 
-const LS_TODOS = 'todo_v2_todos';
-const LS_ATTS  = 'todo_v2_atts';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// UTILS
-// ─────────────────────────────────────────────────────────────────────────────
+// ── UTILS ─────────────────────────────────────────────────────────────────────
 const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const fmtDate = iso => new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}).toUpperCase();
@@ -259,166 +285,183 @@ const mimeIcon = m => m.startsWith('image/')?'🖼':m==='application/pdf'?'📄'
 let toastTimer;
 function toast(msg,col){
   const el=document.getElementById('toast');
-  el.textContent='// '+msg;
-  el.style.color=col||'var(--green)';
-  el.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>el.classList.remove('show'),2600);
+  el.textContent='// '+msg; el.style.color=col||'var(--green)';
+  el.classList.add('show'); clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('show'),2800);
 }
-
 function dot(s){document.getElementById('syncDot').className='sync-dot '+s;}
-
 function show(id){const el=document.getElementById(id);if(el)el.style.display='block';}
 function hide(id){const el=document.getElementById(id);if(el)el.style.display='none';}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// INIT
-// ─────────────────────────────────────────────────────────────────────────────
+// ── IMAGE COMPRESS ────────────────────────────────────────────────────────────
+async function compressImage(file, maxW=1600, quality=0.82){
+  return new Promise(resolve=>{
+    if(!file.type.startsWith('image/')){resolve(file);return;}
+    const img=new Image();
+    const url=URL.createObjectURL(file);
+    img.onload=()=>{
+      URL.revokeObjectURL(url);
+      let {width:w,height:h}=img;
+      if(w<=maxW&&h<=maxW){resolve(file);return;}
+      const ratio=Math.min(maxW/w,maxW/h);
+      w=Math.round(w*ratio); h=Math.round(h*ratio);
+      const c=document.createElement('canvas');
+      c.width=w; c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      c.toBlob(blob=>{
+        if(!blob||blob.size>=file.size){resolve(file);return;}
+        resolve(new File([blob],file.name,{type:blob.type||file.type}));
+      },file.type||'image/jpeg',quality);
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);resolve(file);};
+    img.src=url;
+  });
+}
+
+// ── STORAGE METER ─────────────────────────────────────────────────────────────
+function updateStorageMeter(){
+  const bar=document.getElementById('storageBar');
+  const fill=document.getElementById('storageFill');
+  const label=document.getElementById('storageLabel');
+  if(mode==='guest'){
+    // estimate localStorage usage
+    let bytes=0;
+    try{bytes=(localStorage.getItem(LS_TODOS)||'').length+(localStorage.getItem(LS_ATTS)||'').length;}catch{}
+    const pct=Math.min(100,(bytes/5000000)*100);
+    bar.className='storage-bar visible';
+    fill.className='storage-fill'+(pct>80?' danger':pct>60?' warn':'');
+    fill.style.width=pct.toFixed(1)+'%';
+    label.textContent='local storage: '+fmtSize(bytes)+' / ~5MB ('+pct.toFixed(0)+'%)';
+  } else {
+    // sum attachment sizes from attMap
+    let bytes=Object.values(attMap).flat().reduce((s,a)=>s+(a.size||0),0);
+    const pct=Math.min(100,(bytes/SUPA_STORAGE_LIMIT)*100);
+    bar.className='storage-bar visible';
+    fill.className='storage-fill'+(pct>80?' danger':pct>60?' warn':'');
+    fill.style.width=pct.toFixed(1)+'%';
+    label.textContent='supabase storage: '+fmtSize(bytes)+' / 50MB ('+pct.toFixed(0)+'%)';
+    // show clear done attachments button if any done todos have attachments
+    const doneIds=new Set(todos.filter(t=>t.done).map(t=>t.id));
+    const hasDoneAtts=Object.keys(attMap).some(id=>doneIds.has(id)&&attMap[id].length>0);
+    document.getElementById('btnClearAtts').style.display=hasDoneAtts?'inline-block':'none';
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
 async function init(){
   show('authScreen');
 
-  try {
-    sb = window.supabase.createClient(SUPA_URL, SUPA_KEY, {
-      auth: { detectSessionInUrl: false, persistSession: true }
+  try{
+    sb=window.supabase.createClient(SUPA_URL,SUPA_KEY,{
+      auth:{detectSessionInUrl:false,persistSession:true}
     });
-  } catch(e) { return; }
+  }catch(e){return;}
 
-  // ALWAYS register listener first — handles SIGNED_IN, INITIAL_SESSION, SIGNED_OUT
-  sb.auth.onAuthStateChange(async(event, session)=>{
-    console.log('[auth]', event, session?.user?.email);
-    if((event==='SIGNED_IN' || event==='INITIAL_SESSION') && session && !currentUser){
-      history.replaceState(null, '', window.location.pathname);
+  // Always register listener first
+  sb.auth.onAuthStateChange(async(event,session)=>{
+    if((event==='SIGNED_IN'||event==='INITIAL_SESSION')&&session&&!currentUser){
+      history.replaceState(null,'',window.location.pathname);
       await enterSyncedMode(session.user);
     }
-    if(event==='SIGNED_OUT'){ leaveSyncedMode(); }
+    if(event==='SIGNED_OUT') leaveSyncedMode();
   });
 
-  // Manually handle OAuth hash redirect
-  const hash = window.location.hash;
-  if(hash && hash.includes('access_token')){
-    const params = new URLSearchParams(hash.replace(/^#+/, ''));
-    const access_token = params.get('access_token');
-    const refresh_token = params.get('refresh_token');
-    if(access_token && refresh_token){
-      console.log('[init] setting session from URL hash');
-      await sb.auth.setSession({ access_token, refresh_token });
-      // onAuthStateChange SIGNED_IN fires automatically
+  // Manually handle OAuth hash
+  const hash=window.location.hash;
+  if(hash&&hash.includes('access_token')){
+    const params=new URLSearchParams(hash.replace(/^#+/,''));
+    const at=params.get('access_token'), rt=params.get('refresh_token');
+    if(at&&rt){
+      await sb.auth.setSession({access_token:at,refresh_token:rt});
+      // onAuthStateChange SIGNED_IN fires
     }
   }
-  // (if no hash, onAuthStateChange INITIAL_SESSION fires automatically with stored session)
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// INIT
-// ─────────────────────────────────────────────────────────────────────────────
-
-// ─────────────────────────────────────────────────────────────────────────────
-// GUEST MODE
-// ─────────────────────────────────────────────────────────────────────────────
+// ── GUEST MODE ────────────────────────────────────────────────────────────────
 function enterGuestMode(){
   mode='guest'; currentUser=null;
   hide('authScreen'); show('appScreen');
-  const badge=document.getElementById('modeBadge');
-  badge.textContent='GUEST'; badge.className='mode-badge guest-mode';
+  document.getElementById('modeBadge').textContent='GUEST';
+  document.getElementById('modeBadge').className='mode-badge guest-mode';
   document.getElementById('btnUpgrade').style.display='inline-block';
   document.getElementById('btnSignOut').style.display='none';
   document.getElementById('userAvatar').style.display='none';
   document.getElementById('avatarPh').textContent='?';
-  document.getElementById('syncDot').className='sync-dot';
+  dot('');
   loadGuest();
 }
 
 function loadGuest(){
-  try{ todos=JSON.parse(localStorage.getItem(LS_TODOS)||'[]'); }catch{ todos=[]; }
-  try{ attMap=JSON.parse(localStorage.getItem(LS_ATTS)||'{}'); }catch{ attMap={}; }
-  render();
+  try{todos=JSON.parse(localStorage.getItem(LS_TODOS)||'[]');}catch{todos=[];}
+  try{attMap=JSON.parse(localStorage.getItem(LS_ATTS)||'{}');}catch{attMap={};}
+  render(); updateStorageMeter();
 }
 
 function saveGuest(){
-  // Don't save base64 blobs > 4MB total to avoid LS quota errors
-  const safeAtts = {};
-  for(const [k,v] of Object.entries(attMap)){
-    safeAtts[k]=v.map(a=>{
-      if(a.dataUrl && a.dataUrl.length>3*1024*1024) return {...a,dataUrl:null,error:'too large to cache'};
-      return a;
-    });
-  }
   try{
     localStorage.setItem(LS_TODOS,JSON.stringify(todos));
-    localStorage.setItem(LS_ATTS,JSON.stringify(safeAtts));
+    localStorage.setItem(LS_ATTS,JSON.stringify(attMap));
   }catch(e){
-    // LS full — save todos only
-    try{ localStorage.setItem(LS_TODOS,JSON.stringify(todos)); }catch{}
-    toast('storage full — attachments not cached locally','var(--accent2)');
+    toast('storage full — data may not save','var(--accent2)');
   }
+  updateStorageMeter();
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SYNCED MODE
-// ─────────────────────────────────────────────────────────────────────────────
+// ── SYNCED MODE ───────────────────────────────────────────────────────────────
 async function enterSyncedMode(user){
   mode='synced'; currentUser=user;
   hide('authScreen');
   document.getElementById('appScreen').style.display='block';
-  const badge=document.getElementById('modeBadge');
-  badge.textContent='SYNCED'; badge.className='mode-badge synced-mode';
+  document.getElementById('modeBadge').textContent='SYNCED';
+  document.getElementById('modeBadge').className='mode-badge synced-mode';
   document.getElementById('btnUpgrade').style.display='none';
   document.getElementById('btnSignOut').style.display='inline-block';
-  const av=document.getElementById('userAvatar');
-  const ph=document.getElementById('avatarPh');
+  const av=document.getElementById('userAvatar'),ph=document.getElementById('avatarPh');
   if(user.user_metadata?.avatar_url){
-    av.src=user.user_metadata.avatar_url;
-    av.style.display='inline-block';
-    ph.style.display='none';
+    av.src=user.user_metadata.avatar_url; av.style.display='inline-block'; ph.style.display='none';
   } else {
-    ph.textContent=(user.email||'?')[0].toUpperCase();
-    ph.style.display='flex';
+    ph.textContent=(user.email||'?')[0].toUpperCase(); ph.style.display='flex';
   }
   await loadSynced();
   subscribeRealtime();
 }
 
 function leaveSyncedMode(){
-  mode='guest'; currentUser=null;
-  todos=[]; attMap={};
-  if(realtimeCh){sb.removeChannel(realtimeCh); realtimeCh=null;}
+  mode='guest'; currentUser=null; todos=[]; attMap=[];
+  if(realtimeCh){sb.removeChannel(realtimeCh);realtimeCh=null;}
   document.getElementById('appScreen').style.display='none';
   document.getElementById('authScreen').style.display='block';
-  render();
 }
 
 async function loadSynced(){
   dot('syncing');
-  const {data:{session}} = await sb.auth.getSession();
-  console.log('[loadSynced] session:', session?.user?.email, 'token:', session?.access_token?.slice(0,20));
-  const [{data:tData,error:tErr},{data:aData}] = await Promise.all([
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){dot('err');toast('session lost — please sign in again','var(--danger)');leaveSyncedMode();return;}
+  const [{data:tData,error:tErr},{data:aData,error:aErr}]=await Promise.all([
     sb.from('todos').select('*').order('created',{ascending:false}),
     sb.from('attachments').select('*').order('created',{ascending:true})
   ]);
-  console.log('[loadSynced] todos:', tData?.length, 'err:', tErr?.message);
   if(tErr){dot('err');toast('load error: '+tErr.message,'var(--danger)');return;}
-  todos=(tData||[]).map(t=>({...t, desc: t.description||''}));
+  todos=(tData||[]).map(t=>({...t,desc:t.description||''}));
   attMap={};
   (aData||[]).forEach(a=>{
     (attMap[a.todo_id]=attMap[a.todo_id]||[]).push({
-      id:a.id, name:a.name, size:a.size, mime:a.mime_type,
-      path:a.path, driveId:a.drive_id||null, driveUrl:a.drive_url||null
+      id:a.id,name:a.name,size:a.size,mime:a.mime_type,path:a.path,todoId:a.todo_id
     });
   });
-  dot('ok'); render();
+  dot('ok'); render(); updateStorageMeter();
 }
 
 function subscribeRealtime(){
   if(realtimeCh) sb.removeChannel(realtimeCh);
-  realtimeCh=sb.channel('rt-todos')
-    .on('postgres_changes',{event:'*',schema:'public',table:'todos'}, ()=>{ console.log('[rt] todos changed'); loadSynced(); })
-    .on('postgres_changes',{event:'*',schema:'public',table:'attachments'}, ()=>{ console.log('[rt] attachments changed'); loadSynced(); })
-    .subscribe((status)=>{ console.log('[rt] status:', status); });
+  realtimeCh=sb.channel('rt-v2')
+    .on('postgres_changes',{event:'*',schema:'public',table:'todos'},()=>loadSynced())
+    .on('postgres_changes',{event:'*',schema:'public',table:'attachments'},()=>loadSynced())
+    .subscribe();
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CRUD — unified, dispatches by mode
-// ─────────────────────────────────────────────────────────────────────────────
+// ── CRUD ──────────────────────────────────────────────────────────────────────
 async function addTodo(text,priority,desc){
   text=text.trim(); if(!text) return;
   if(mode==='guest'){
@@ -427,8 +470,8 @@ async function addTodo(text,priority,desc){
   } else {
     dot('syncing');
     const {error}=await sb.from('todos').insert({user_id:currentUser.id,text,description:desc.trim(),priority,done:false});
-    if(error){dot('err');toast('add failed: '+error.message,'var(--danger)');}
-    else{ await loadSynced(); }
+    if(error){dot('err');toast('add failed: '+error.message,'var(--danger)');return;}
+    await loadSynced();
   }
 }
 
@@ -436,11 +479,10 @@ async function toggleDone(id){
   const t=todos.find(t=>t.id===id); if(!t) return;
   if(mode==='guest'){t.done=!t.done;saveGuest();render();}
   else{
-    t.done=!t.done; render(); // optimistic
+    t.done=!t.done; render();
     dot('syncing');
     const {error}=await sb.from('todos').update({done:t.done,updated:new Date().toISOString()}).eq('id',id);
-    if(error){t.done=!t.done;dot('err');toast('update failed','var(--danger)');render();}
-    else dot('ok');
+    if(error){t.done=!t.done;dot('err');render();}else{dot('ok');updateStorageMeter();}
   }
 }
 
@@ -454,6 +496,7 @@ async function deleteTodo(id){
     if(error){dot('err');toast('delete failed','var(--danger)');return;}
     await loadSynced();
   }
+  confirmDeleteId=null;
 }
 
 async function commitEdit(id,text,desc){
@@ -466,70 +509,124 @@ async function commitEdit(id,text,desc){
     dot('syncing');
     const {error}=await sb.from('todos').update({text,description:desc.trim(),updated:new Date().toISOString()}).eq('id',id);
     if(error){dot('err');toast('save failed','var(--danger)');return;}
-    editingId=null;
-    await loadSynced();
+    editingId=null; await loadSynced();
   }
 }
 
 async function clearDone(){
   const ids=todos.filter(t=>t.done).map(t=>t.id); if(!ids.length) return;
   if(mode==='guest'){
-    todos=todos.filter(t=>!t.done);
-    ids.forEach(id=>delete attMap[id]);
-    saveGuest(); render(); toast('completed cleared');
+    todos=todos.filter(t=>!t.done); ids.forEach(id=>delete attMap[id]); saveGuest(); render(); toast('completed cleared');
   } else {
     dot('syncing');
     for(const id of ids) for(const a of (attMap[id]||[])) if(a.path) await sb.storage.from('attachments').remove([a.path]);
     await sb.from('todos').delete().in('id',ids);
-    todos=todos.filter(t=>!t.done);
-    ids.forEach(id=>delete attMap[id]);
-    render(); dot('ok'); toast('completed cleared');
+    await loadSynced(); toast('completed cleared');
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ATTACHMENTS
-// ─────────────────────────────────────────────────────────────────────────────
-
-// ── Guest: store as base64 in memory/LS ──
-async function guestUpload(todoId, file){
-  if(file.size > 5*1024*1024){toast('guest mode: max 5MB per file','var(--accent2)');return;}
-  const reader=new FileReader();
-  reader.onload=ev=>{
-    const att={id:uid(),name:file.name,size:file.size,mime:file.type,dataUrl:ev.target.result};
-    (attMap[todoId]=attMap[todoId]||[]).push(att);
-    saveGuest(); render();
-    toast('attached '+file.name);
-  };
-  reader.readAsDataURL(file);
+async function clearDoneAttachments(){
+  const doneIds=new Set(todos.filter(t=>t.done).map(t=>t.id));
+  const affected=Object.keys(attMap).filter(id=>doneIds.has(id));
+  if(!affected.length){toast('no attachments on completed tasks');return;}
+  if(!confirm('Delete all attachments from completed tasks?')) return;
+  if(mode==='guest'){
+    affected.forEach(id=>delete attMap[id]); saveGuest(); render(); toast('cleared '+affected.length+' sets of attachments');
+  } else {
+    dot('syncing');
+    for(const id of affected){
+      for(const a of (attMap[id]||[])) if(a.path) await sb.storage.from('attachments').remove([a.path]);
+      await sb.from('attachments').delete().eq('todo_id',id);
+    }
+    await loadSynced(); toast('cleared attachments from completed tasks');
+  }
 }
 
-function guestDeleteAtt(todoId, attId){
-  if(attMap[todoId]) attMap[todoId]=attMap[todoId].filter(a=>a.id!==attId);
-  saveGuest(); render(); toast('removed');
+// ── ATTACHMENTS ───────────────────────────────────────────────────────────────
+async function uploadFile(todoId, rawFile){
+  // Compress images before upload
+  const file = await compressImage(rawFile);
+  const compressed = file.size < rawFile.size;
+  if(compressed) toast('compressed '+rawFile.name+' '+fmtSize(rawFile.size)+' → '+fmtSize(file.size));
+
+  if(mode==='guest'){
+    if(file.size>5*1024*1024){toast('guest: max 5MB per file','var(--accent2)');return;}
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      (attMap[todoId]=attMap[todoId]||[]).push({id:uid(),name:file.name,size:file.size,mime:file.type,dataUrl:ev.target.result});
+      saveGuest(); render(); toast('attached '+file.name);
+    };
+    reader.readAsDataURL(file);
+  } else {
+    if(file.size>SUPA_MAX_FILE){toast('max 50MB per file','var(--accent2)');return;}
+    const ext=file.name.split('.').pop();
+    const path=currentUser.id+'/'+todoId+'/'+Date.now()+'_'+Math.random().toString(36).slice(2)+'.'+ext;
+    dot('syncing');
+    const {error:upErr}=await sb.storage.from('attachments').upload(path,file);
+    if(upErr){dot('err');toast('upload failed: '+upErr.message,'var(--danger)');return;}
+    const {error:dbErr}=await sb.from('attachments').insert({
+      todo_id:todoId,user_id:currentUser.id,name:file.name,size:file.size,mime_type:file.type,path
+    });
+    if(dbErr){dot('err');toast('record failed','var(--danger)');return;}
+    dot('ok'); toast('uploaded '+file.name);
+    await loadSynced();
+  }
 }
 
-// ── Synced: Supabase Storage ──
-async function syncedUpload(todoId, file){
-  if(file.size>20*1024*1024){toast('max 20MB','var(--accent2)');return;}
-  const ext=file.name.split('.').pop();
-  const path=`${currentUser.id}/${todoId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-  dot('syncing');
-  const {error:upErr}=await sb.storage.from('attachments').upload(path,file);
-  if(upErr){dot('err');toast('upload failed: '+upErr.message,'var(--danger)');return;}
-  const {error:dbErr}=await sb.from('attachments').insert({
-    todo_id:todoId,user_id:currentUser.id,name:file.name,size:file.size,mime_type:file.type,path
-  });
-  if(dbErr){dot('err');toast('record failed','var(--danger)');return;}
-  dot('ok'); toast('uploaded '+file.name);
+async function deleteAttachment(attId,todoId){
+  if(mode==='guest'){
+    if(attMap[todoId]) attMap[todoId]=attMap[todoId].filter(a=>a.id!==attId);
+    saveGuest(); render(); toast('removed');
+  } else {
+    const a=findAtt(attId); if(!a) return;
+    dot('syncing');
+    if(a.path) await sb.storage.from('attachments').remove([a.path]);
+    await sb.from('attachments').delete().eq('id',attId);
+    await loadSynced(); toast('removed');
+  }
 }
 
-async function syncedDeleteAtt(att){
-  dot('syncing');
-  if(att.path) await sb.storage.from('attachments').remove([att.path]);
-  await sb.from('attachments').delete().eq('id',att.id);
-  if(attMap[att.todoId]) attMap[att.todoId]=attMap[att.todoId].filter(a=>a.id!==att.id);
-  render(); dot('ok'); toast('removed');
+async function openAttachment(attId){
+  const a=findAtt(attId); if(!a) return;
+  if(a.dataUrl){
+    if(a.mime&&a.mime.startsWith('image/')) showImgModal(a);
+    else downloadDataUrl(a);
+    return;
+  }
+  if(a.path){
+    dot('syncing');
+    const {data}=await sb.storage.from('attachments').createSignedUrl(a.path,120);
+    dot('ok');
+    if(data?.signedUrl){
+      if(a.mime&&a.mime.startsWith('image/')) showImgModal({...a,signedUrl:data.signedUrl});
+      else window.open(data.signedUrl,'_blank');
+    } else toast('could not get URL','var(--danger)');
+  }
+}
+
+function showImgModal(a){
+  const src=a.signedUrl||a.dataUrl;
+  const m=document.createElement('div');
+  m.className='img-modal';
+  m.innerHTML='<img src="'+esc(src)+'" alt="'+esc(a.name)+'">'
+    +'<button class="img-modal-close">✕ CLOSE</button>'
+    +'<button class="img-modal-dl">⬇ DOWNLOAD</button>';
+  m.querySelector('.img-modal-close').onclick=()=>m.remove();
+  m.querySelector('.img-modal-dl').onclick=e=>{e.stopPropagation();if(a.dataUrl)downloadDataUrl(a);else window.open(src,'_blank');};
+  m.onclick=e=>{if(e.target===m)m.remove();};
+  document.body.appendChild(m);
+}
+
+function downloadDataUrl(a){
+  const link=document.createElement('a');
+  link.href=a.dataUrl; link.download=a.name;
+  document.body.appendChild(link); link.click(); document.body.removeChild(link);
+  toast('downloading '+a.name);
+}
+
+function findAtt(id){
+  for(const arr of Object.values(attMap)){const a=arr.find(a=>a.id===id);if(a)return a;}
+  return null;
 }
 
 async function getSignedUrl(path){
@@ -537,121 +634,109 @@ async function getSignedUrl(path){
   return data?.signedUrl||null;
 }
 
-function findAtt(attId){
-  for(const arr of Object.values(attMap)){const a=arr.find(a=>a.id===attId);if(a)return a;}
-  return null;
-}
-
-async function openAtt(attId){
-  const a=findAtt(attId); if(!a) return;
-  if(a.dataUrl){window.open(a.dataUrl,'_blank');return;}
-  if(a.driveUrl){window.open(a.driveUrl,'_blank');return;}
-  if(a.path){
-    const url=await getSignedUrl(a.path);
-    if(url) window.open(url,'_blank');
-    else toast('could not get download URL','var(--danger)');
-    return;
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function getFiltered(){
+  let list = filter==='active'?todos.filter(t=>!t.done)
+    :filter==='done'?todos.filter(t=>t.done)
+    :filter==='high'?todos.filter(t=>t.priority==='high')
+    :todos;
+  if(searchQ){
+    const q=searchQ.toLowerCase();
+    list=list.filter(t=>t.text.toLowerCase().includes(q)||(t.desc||'').toLowerCase().includes(q));
   }
+  return list;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// RENDER
-// ─────────────────────────────────────────────────────────────────────────────
 function render(){
-  const list = filter==='active'?todos.filter(t=>!t.done):filter==='done'?todos.filter(t=>t.done):todos;
+  const list=getFiltered();
   const done=todos.filter(t=>t.done).length;
-  document.getElementById('statsLabel').textContent=`${todos.length-done} active · ${done} done`;
+  const active=todos.length-done;
+  document.getElementById('statsLabel').textContent=active+' active · '+done+' done'+(searchQ?' · '+list.length+' results':'');
   const bb=document.getElementById('bottomBar');
   bb.style.display=todos.length?'flex':'none';
-  document.getElementById('bottomCount').textContent=`${todos.length} total`;
-
+  document.getElementById('bottomCount').textContent=todos.length+' total';
   const tl=document.getElementById('todoList');
   if(!list.length){
-    tl.innerHTML=`<div class="empty"><div class="big">${filter==='done'?'☐':'◈'}</div><p>${filter==='done'?'nothing done yet':filter==='active'?'all caught up':'add your first task'}</p></div>`;
+    tl.innerHTML='<div class="empty"><div class="big">'+(!searchQ?filter==='done'?'☐':'◈':'🔍')+'</div><p>'+(searchQ?'no results for "'+esc(searchQ)+'"':filter==='done'?'nothing done yet':filter==='active'?'all caught up':filter==='high'?'no high priority tasks':'add your first task')+'</p></div>';
     return;
   }
   tl.innerHTML='';
-  list.forEach(t=>{ tl.appendChild(buildItem(t)); });
+  list.forEach(t=>tl.appendChild(buildItem(t)));
   bindEvents(tl);
-  loadImgPreviews(tl);
+  if(mode==='synced') loadSignedPreviews(tl);
 }
 
 function buildItem(t){
   const isEdit=editingId===t.id;
+  const isConfirmDel=confirmDeleteId===t.id;
   const isExpanded=expandedIds.has(t.id);
   const isAttOpen=openAttIds.has(t.id);
   const hasDesc=!!(t.desc&&t.desc.trim());
   const atts=attMap[t.id]||[];
-
   const div=document.createElement('div');
   div.className='todo-item'+(t.done?' done':'');
   div.dataset.id=t.id;
 
   let body;
   if(isEdit){
-    body=`
-      <input class="edit-inp" value="${esc(t.text)}" data-id="${t.id}">
-      <textarea class="edit-desc-ta" data-id="${t.id}" rows="2" placeholder="description...">${esc(t.desc||'')}</textarea>
-    `;
+    body='<input class="edit-inp" value="'+esc(t.text)+'" data-id="'+t.id+'">'
+      +'<textarea class="edit-desc-ta" data-id="'+t.id+'" rows="2" placeholder="description...">'+esc(t.desc||'')+'</textarea>';
   } else {
-    const attBadge=atts.length?` · 📎 ${atts.length}`:'';
-    const descBtn=`<button class="expand-btn${hasDesc?' vis':''}${isExpanded?' open':''}" data-role="desc" data-id="${t.id}"><i class="arr">▶</i> ${hasDesc?(isExpanded?'hide':'notes'):'+ note'}</button>`;
+    const attBadge=atts.length?' · 📎 '+atts.length:'';
+    const descBtn='<button class="expand-btn'+(hasDesc?' vis':'')+(isExpanded?' open':'')+'" data-role="desc" data-id="'+t.id+'"><i class="arr">▶</i> '+(hasDesc?(isExpanded?'hide':'notes'):'+ note')+'</button>';
     const attLabel=isAttOpen?'hide':(atts.length?'files ('+atts.length+')':'files');
-    const attBtn=`<button class="expand-btn${atts.length?' vis':''}${isAttOpen?' open':''}" data-role="att" data-id="${t.id}"><i class="arr">▶</i> ${attLabel}</button>`;
-    body=`
-      <span class="todo-text">${esc(t.text)}</span>
-      <div class="todo-meta">${t.priority.toUpperCase()} · ${fmtDate(t.created)}${attBadge}</div>
-      <div class="expand-row">${descBtn}${attBtn}</div>
-      ${hasDesc?`<div class="todo-desc${isExpanded?' open':''}">${esc(t.desc)}</div>`:''}
-      ${isAttOpen?buildAttPanel(t.id,atts):''}
-    `;
+    const attBtn='<button class="expand-btn'+(atts.length?' vis':'')+(isAttOpen?' open':'')+'" data-role="att" data-id="'+t.id+'"><i class="arr">▶</i> '+attLabel+'</button>';
+    body='<span class="todo-text">'+esc(t.text)+'</span>'
+      +'<div class="todo-meta">'+t.priority.toUpperCase()+' · '+fmtDate(t.created)+attBadge+'</div>'
+      +'<div class="expand-row">'+descBtn+attBtn+'</div>'
+      +(hasDesc?'<div class="todo-desc'+(isExpanded?' open':'')+'">'+esc(t.desc)+'</div>':'')
+      +(isAttOpen?buildAttPanel(t.id,atts):'');
   }
 
-  div.innerHTML=`
-    <div class="pbar ${t.priority}"></div>
-    <div class="check-area" data-id="${t.id}"><div class="check-box"></div></div>
-    <div class="todo-body">${body}</div>
-    <div class="todo-actions">
-      ${isEdit
-        ?`<button class="act save-btn" data-id="${t.id}">SAVE</button><button class="act cancel-btn">×</button>`
-        :`<button class="act edit-btn" data-id="${t.id}">EDIT</button><button class="act del del-btn" data-id="${t.id}">DEL</button>`
-      }
-    </div>
-  `;
+  let actions;
+  if(isEdit){
+    actions='<button class="act save-btn" data-id="'+t.id+'">SAVE</button><button class="act cancel-btn">×</button>';
+  } else if(isConfirmDel){
+    actions='<span class="del-confirm"><span>sure?</span>'
+      +'<button class="act del-yes" data-id="'+t.id+'">YES</button>'
+      +'<button class="act del-no">NO</button></span>';
+  } else {
+    actions='<button class="act edit-btn" data-id="'+t.id+'">EDIT</button>'
+      +'<button class="act del confirm-del-btn" data-id="'+t.id+'">DEL</button>';
+  }
+
+  div.innerHTML='<div class="pbar '+t.priority+'"></div>'
+    +'<div class="check-area" data-id="'+t.id+'"><div class="check-box"></div></div>'
+    +'<div class="todo-body">'+body+'</div>'
+    +'<div class="todo-actions">'+actions+'</div>';
   return div;
 }
 
 function buildAttPanel(todoId,atts){
   const items=atts.map(a=>{
     const isImg=(a.mime||'').startsWith('image/');
-    const imgTag = isImg && a.dataUrl
-      ? '<img class="att-img" src="'+esc(a.dataUrl)+'" alt="'+esc(a.name)+'" data-att="'+a.id+'">'
-      : isImg && a.path
-      ? '<img class="att-img" data-path="'+esc(a.path)+'" src="" alt="'+esc(a.name)+'" data-att="'+a.id+'">'
-      : '';
     return '<div class="att-row">'
-      + '<span class="att-icon">'+mimeIcon(a.mime||'')+'</span>'
-      + '<span class="att-name" data-att="'+a.id+'">'+esc(a.name)+'</span>'
-      + '<span class="att-size">'+fmtSize(a.size||0)+'</span>'
-      + '<button class="att-rm" data-att="'+a.id+'" data-tid="'+todoId+'">×</button>'
-      + '</div>'
-      + imgTag;
+      +'<span class="att-icon">'+mimeIcon(a.mime||'')+'</span>'
+      +'<span class="att-name" data-att="'+a.id+'">'+esc(a.name)+'</span>'
+      +'<span class="att-size">'+fmtSize(a.size||0)+'</span>'
+      +'<button class="att-rm" data-att="'+a.id+'" data-tid="'+todoId+'">×</button>'
+      +'</div>'
+      +(isImg&&a.dataUrl?'<img class="att-img" src="'+esc(a.dataUrl)+'" alt="'+esc(a.name)+'" data-att="'+a.id+'">'
+        :isImg&&a.path?'<img class="att-img" data-path="'+esc(a.path)+'" src="" alt="'+esc(a.name)+'" data-att="'+a.id+'">'
+        :'');
   }).join('');
-
-  const uploadLabel = mode==='guest'
-    ? '<label class="att-up-btn" for="fu-'+todoId+'">+ LOCAL FILE (max 5MB)</label>'
-    : '<label class="att-up-btn" for="fu-'+todoId+'">+ UPLOAD FILE (max 20MB)</label>';
-
+  const lim=mode==='guest'?'max 5MB, images compressed':'max 50MB, images compressed';
   return '<div class="att-panel open">'
-    + '<div class="att-list">'+items+'</div>'
-    + '<div class="att-upload-row">'
-    + uploadLabel
-    + '<input type="file" id="fu-'+todoId+'" class="file-input" data-tid="'+todoId+'" multiple>'
-    + '<span class="att-prog" id="ap-'+todoId+'">uploading...</span>'
-    + '</div></div>';
+    +'<div class="att-list">'+items+'</div>'
+    +'<div class="att-upload-row">'
+    +'<label class="att-up-btn" for="fu-'+todoId+'">+ ATTACH FILE</label>'
+    +'<input type="file" id="fu-'+todoId+'" class="file-input" data-tid="'+todoId+'" multiple>'
+    +'<span class="att-prog" id="ap-'+todoId+'">uploading...</span>'
+    +'<span class="compress-note">'+lim+'</span>'
+    +'</div></div>';
 }
 
-async function loadImgPreviews(container){
+async function loadSignedPreviews(container){
   for(const img of container.querySelectorAll('.att-img[data-path]')){
     const url=await getSignedUrl(img.dataset.path);
     if(url) img.src=url;
@@ -659,50 +744,37 @@ async function loadImgPreviews(container){
 }
 
 function bindEvents(tl){
-  // hover show expand btns
   tl.querySelectorAll('.todo-item').forEach(item=>{
     const btns=item.querySelectorAll('.expand-btn:not(.vis)');
     item.addEventListener('mouseenter',()=>btns.forEach(b=>b.style.opacity='1'));
     item.addEventListener('mouseleave',()=>btns.forEach(b=>b.style.opacity=''));
   });
-
   tl.querySelectorAll('.check-area').forEach(el=>el.addEventListener('click',()=>toggleDone(el.dataset.id)));
-
   tl.querySelectorAll('.edit-btn').forEach(el=>el.addEventListener('click',()=>{
-    editingId=el.dataset.id; render();
+    editingId=el.dataset.id; confirmDeleteId=null; render();
     requestAnimationFrame(()=>{const i=document.querySelector('.edit-inp');if(i){i.focus();i.select();}});
   }));
-
-  tl.querySelectorAll('.del-btn').forEach(el=>el.addEventListener('click',()=>deleteTodo(el.dataset.id)));
-
+  tl.querySelectorAll('.confirm-del-btn').forEach(el=>el.addEventListener('click',()=>{
+    confirmDeleteId=el.dataset.id; editingId=null; render();
+  }));
+  tl.querySelectorAll('.del-yes').forEach(el=>el.addEventListener('click',()=>deleteTodo(el.dataset.id)));
+  tl.querySelectorAll('.del-no').forEach(el=>el.addEventListener('click',()=>{confirmDeleteId=null;render();}));
   tl.querySelectorAll('.save-btn').forEach(el=>el.addEventListener('click',()=>{
-    const inp=tl.querySelector('.edit-inp');
-    const desc=tl.querySelector('.edit-desc-ta');
+    const inp=tl.querySelector('.edit-inp'), desc=tl.querySelector('.edit-desc-ta');
     if(inp) commitEdit(el.dataset.id,inp.value,desc?.value||'');
   }));
-
   tl.querySelectorAll('.cancel-btn').forEach(el=>el.addEventListener('click',()=>{editingId=null;render();}));
-
   tl.querySelectorAll('.edit-inp').forEach(inp=>inp.addEventListener('keydown',e=>{
     if(e.key==='Escape'){editingId=null;render();}
-    if(e.key==='Enter'&&!e.shiftKey){
-      const desc=tl.querySelector('.edit-desc-ta');
-      commitEdit(inp.dataset.id,inp.value,desc?.value||'');
-    }
+    if(e.key==='Enter'&&!e.shiftKey){const desc=tl.querySelector('.edit-desc-ta');commitEdit(inp.dataset.id,inp.value,desc?.value||'');}
   }));
-
   tl.querySelectorAll('[data-role]').forEach(btn=>btn.addEventListener('click',e=>{
     e.stopPropagation();
-    const id=btn.dataset.id;
-    const role=btn.dataset.role;
+    const id=btn.dataset.id, role=btn.dataset.role;
     if(role==='desc'){
       if(!btn.classList.contains('vis')&&!expandedIds.has(id)){
-        // no desc yet — open edit
         editingId=id; render();
-        requestAnimationFrame(()=>{
-          const ta=document.querySelector('.edit-desc-ta');
-          if(ta){ta.focus();}
-        });
+        requestAnimationFrame(()=>{const ta=document.querySelector('.edit-desc-ta');if(ta)ta.focus();});
         return;
       }
       expandedIds.has(id)?expandedIds.delete(id):expandedIds.add(id);
@@ -711,128 +783,114 @@ function bindEvents(tl){
     }
     render();
   }));
-
-  // Attachment interactions
-  tl.querySelectorAll('.att-name').forEach(el=>el.addEventListener('click',()=>openAtt(el.dataset.att)));
-  tl.querySelectorAll('.att-img').forEach(img=>img.addEventListener('click',()=>openAtt(img.dataset.att)));
-  tl.querySelectorAll('.att-rm').forEach(btn=>btn.addEventListener('click',()=>{
-    const tid=btn.dataset.tid;
-    const attId=btn.dataset.att;
-    if(mode==='guest'){ guestDeleteAtt(tid,attId); }
-    else {
-      const a=findAtt(attId);
-      if(a) syncedDeleteAtt({...a,todoId:tid});
-    }
-  }));
-
+  tl.querySelectorAll('.att-name').forEach(el=>el.addEventListener('click',()=>openAttachment(el.dataset.att)));
+  tl.querySelectorAll('.att-img').forEach(img=>img.addEventListener('click',()=>openAttachment(img.dataset.att)));
+  tl.querySelectorAll('.att-rm').forEach(btn=>btn.addEventListener('click',()=>deleteAttachment(btn.dataset.att,btn.dataset.tid)));
   tl.querySelectorAll('.file-input').forEach(inp=>inp.addEventListener('change',async()=>{
     const tid=inp.dataset.tid;
     const prog=document.getElementById('ap-'+tid);
     if(prog) prog.style.display='inline';
-    for(const f of inp.files){
-      if(mode==='guest') await guestUpload(tid,f);
-      else await syncedUpload(tid,f);
-    }
+    for(const f of inp.files) await uploadFile(tid,f);
     if(prog) prog.style.display='none';
     inp.value='';
-    if(mode==='synced') await loadSynced();
   }));
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ADD FORM
-// ─────────────────────────────────────────────────────────────────────────────
-const newDesc=document.getElementById('newDesc');
-newDesc.addEventListener('input',()=>{
-  newDesc.style.height='auto';
-  newDesc.style.height=Math.min(newDesc.scrollHeight,120)+'px';
-});
-
-function doAdd(){
-  const text=document.getElementById('newTask').value.trim(); if(!text) return;
-  addTodo(text,document.getElementById('newPri').value,newDesc.value);
-  document.getElementById('newTask').value='';
-  newDesc.value=''; newDesc.style.height='auto';
-  document.getElementById('newTask').focus();
+// ── EXPORT / IMPORT ───────────────────────────────────────────────────────────
+function exportData(){
+  try{
+    const blob=new Blob([JSON.stringify({version:3,exported:new Date().toISOString(),todos,attachments:attMap},null,2)],{type:'application/json'});
+    const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:'todos_'+new Date().toISOString().slice(0,19).replace(/:/g,'-')+'.json'});
+    a.click(); URL.revokeObjectURL(a.href);
+    toast('exported '+todos.length+' tasks with '+Object.values(attMap).flat().length+' attachments');
+  }catch(e){toast('export failed','var(--danger)');}
 }
-document.getElementById('btnAdd').addEventListener('click',doAdd);
-document.getElementById('newTask').addEventListener('keydown',e=>{if(e.key==='Enter') doAdd();});
 
-// ─────────────────────────────────────────────────────────────────────────────
-// FILTERS
-// ─────────────────────────────────────────────────────────────────────────────
-document.querySelectorAll('.filter-btn').forEach(btn=>btn.addEventListener('click',()=>{
-  filter=btn.dataset.f;
-  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active'); render();
-}));
-
-document.getElementById('btnClear').addEventListener('click',clearDone);
-
-// ─────────────────────────────────────────────────────────────────────────────
-// EXPORT / IMPORT
-// ─────────────────────────────────────────────────────────────────────────────
-document.getElementById('btnExport').addEventListener('click',()=>{
-  const payload={version:2,exported:new Date().toISOString(),mode,todos};
-  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
-  const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:`todos_${new Date().toISOString().slice(0,10)}.json`});
-  a.click(); URL.revokeObjectURL(a.href);
-  toast('exported '+todos.length+' tasks');
-});
-
+document.getElementById('btnExport').addEventListener('click',exportData);
 document.getElementById('btnImport').addEventListener('click',()=>document.getElementById('importFile').click());
 
 document.getElementById('importFile').addEventListener('change',async e=>{
   const file=e.target.files[0]; if(!file) return;
+  const action=confirm('Import mode:\n\nOK = Merge (keep existing, add new)\nCancel = Replace all');
+  if(!action&&!confirm('⚠️ This will DELETE all current tasks. Continue?')){e.target.value='';return;}
   const reader=new FileReader();
   reader.onload=async ev=>{
     try{
       const data=JSON.parse(ev.target.result);
-      const rows=(Array.isArray(data)?data:data.todos||[])
-        .filter(t=>t?.text?.trim())
-        .map(t=>({
-          id: mode==='guest'?uid():undefined,
-          user_id: mode==='synced'?currentUser.id:undefined,
-          text:t.text.trim(),
-          description:typeof t.desc==='string'?t.desc:'',
-          priority:['low','medium','high'].includes(t.priority)?t.priority:'medium',
-          done:typeof t.done==='boolean'?t.done:false,
-          created:t.created||new Date().toISOString()
-        }));
-      if(mode==='guest'){
-        todos=[...rows,...todos]; saveGuest(); render();
+      let importedTodos=Array.isArray(data)?data:(data.todos||[]);
+      const importedAtts=data.attachments||{};
+      if(action){
+        const existingIds=new Set(todos.map(t=>t.id));
+        const newTodos=importedTodos.filter(t=>!existingIds.has(t.id));
+        todos=[...newTodos,...todos];
+        for(const [tid,atts] of Object.entries(importedAtts)){
+          if(!attMap[tid]) attMap[tid]=[];
+          const ex=new Set(attMap[tid].map(a=>a.id));
+          attMap[tid]=[...attMap[tid],...atts.filter(a=>!ex.has(a.id))];
+        }
+        toast('merged '+newTodos.length+' tasks');
       } else {
-        const clean=rows.map(({id,...r})=>r);
-        const {error}=await sb.from('todos').insert(clean);
-        if(error) throw error;
+        todos=[...importedTodos]; attMap={...importedAtts};
+        toast('replaced with '+todos.length+' tasks');
+      }
+      if(mode==='guest'){saveGuest();render();}
+      else{
+        const clean=todos.map(t=>({user_id:currentUser.id,text:t.text,description:t.desc||'',priority:t.priority||'medium',done:!!t.done}));
+        if(!action) await sb.from('todos').delete().neq('id','00000000-0000-0000-0000-000000000000');
+        await sb.from('todos').insert(clean);
         await loadSynced();
       }
-      toast('imported '+rows.length+' tasks');
     }catch(err){toast('import failed: '+err.message,'var(--danger)');}
     e.target.value='';
   };
   reader.readAsText(file);
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// AUTH BUTTONS
-// ─────────────────────────────────────────────────────────────────────────────
+// ── ADD FORM ──────────────────────────────────────────────────────────────────
+const newDesc=document.getElementById('newDesc');
+newDesc.addEventListener('input',()=>{newDesc.style.height='auto';newDesc.style.height=Math.min(newDesc.scrollHeight,120)+'px';});
+function doAdd(){
+  const text=document.getElementById('newTask').value.trim(); if(!text) return;
+  addTodo(text,document.getElementById('newPri').value,newDesc.value);
+  document.getElementById('newTask').value=''; newDesc.value=''; newDesc.style.height='auto';
+  document.getElementById('newTask').focus();
+}
+document.getElementById('btnAdd').addEventListener('click',doAdd);
+document.getElementById('newTask').addEventListener('keydown',e=>{if(e.key==='Enter') doAdd();});
+
+// ── SEARCH ────────────────────────────────────────────────────────────────────
+const searchInp=document.getElementById('searchInp');
+const searchClear=document.getElementById('searchClear');
+searchInp.addEventListener('input',()=>{
+  searchQ=searchInp.value.trim();
+  searchClear.className='search-clear'+(searchQ?' vis':'');
+  render();
+});
+searchClear.addEventListener('click',()=>{searchQ='';searchInp.value='';searchClear.className='search-clear';render();});
+
+// ── FILTERS ───────────────────────────────────────────────────────────────────
+document.querySelectorAll('.filter-btn').forEach(btn=>btn.addEventListener('click',()=>{
+  filter=btn.dataset.f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); render();
+}));
+document.getElementById('btnClear').addEventListener('click',clearDone);
+document.getElementById('btnClearAtts').addEventListener('click',clearDoneAttachments);
+
+// ── AUTH ──────────────────────────────────────────────────────────────────────
 document.getElementById('btnGoogle').addEventListener('click',()=>
   sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.href}})
 );
 document.getElementById('btnGuest').addEventListener('click',enterGuestMode);
-document.getElementById('btnSignOut').addEventListener('click', async ()=>{
-  console.log('[signout] button clicked, sb=', !!sb);
-  const {error} = await sb.auth.signOut();
-  console.log('[signout] result error=', error);
-});
 document.getElementById('btnUpgrade').addEventListener('click',()=>{
-  hide('appScreen'); show('authScreen');
+  hide('appScreen');
+  document.getElementById('authScreen').style.display='block';
+});
+document.getElementById('btnSignOut').addEventListener('click',async()=>{
+  await sb.auth.signOut();
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// GO
-// ─────────────────────────────────────────────────────────────────────────────
+// ── GO ────────────────────────────────────────────────────────────────────────
 init();
 </script>
 </body>
