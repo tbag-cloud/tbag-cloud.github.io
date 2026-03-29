@@ -410,9 +410,14 @@ async function openAttachment(attId) {
     const { data } = await sb.storage.from('attachments').createSignedUrl(a.path, 120);
     if (data?.signedUrl) {
       if (a.mime && a.mime.startsWith('image/')) showImgModal(data.signedUrl, a.name, a);
-      else window.open(data.signedUrl, '_blank');
+      else openExternalSafe(data.signedUrl);
     }
   }
+}
+
+function openExternalSafe(url) {
+  const win = window.open(url, '_blank', 'noopener');
+  if (win) win.opener = null;
 }
 
 function showImgModal(src, name, att) {
@@ -422,7 +427,7 @@ function showImgModal(src, name, att) {
     + '<button class="img-modal-close">✕ CLOSE</button>'
     + '<button class="img-modal-dl">⬇ DOWNLOAD</button>';
   m.querySelector('.img-modal-close').onclick = () => m.remove();
-  m.querySelector('.img-modal-dl').onclick = e => { e.stopPropagation(); if (att.dataUrl) downloadDataUrl(att); else window.open(src, '_blank'); };
+  m.querySelector('.img-modal-dl').onclick = e => { e.stopPropagation(); if (att.dataUrl) downloadDataUrl(att); else openExternalSafe(src); };
   m.onclick = e => { if (e.target === m) m.remove(); };
   document.body.appendChild(m);
 }
