@@ -7,6 +7,9 @@
 body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;min-height:100vh;padding:40px 20px;overflow-x:hidden;}
 body::before{content:'';position:fixed;top:-200px;left:-200px;width:500px;height:500px;background:radial-gradient(circle,rgba(124,111,255,0.08) 0%,transparent 70%);pointer-events:none;animation:drift 12s ease-in-out infinite alternate;}
 @keyframes drift{to{transform:translate(80px,120px);}}
+.site-banner{max-width:720px;margin:0 auto 18px;padding:14px 16px;border:1px solid var(--accent2);background:rgba(255,107,107,0.08);}
+.site-banner-title{font-size:0.62rem;color:var(--accent2);letter-spacing:0.12em;margin-bottom:6px;}
+.site-banner-text{font-size:0.78rem;line-height:1.6;color:var(--text);white-space:pre-wrap;}
 
 /* AUTH */
 #authScreen{max-width:420px;margin:80px auto;display:none;}
@@ -57,6 +60,17 @@ h1 span{color:var(--accent);}
 .usage-panel-row{display:flex;justify-content:space-between;gap:12px;font-size:0.7rem;padding:3px 0;}
 .usage-panel-key{color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;}
 .usage-panel-val{color:var(--text);}
+.usage-panel-block{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+.usage-panel-subtitle{font-size:0.62rem;color:var(--muted);letter-spacing:0.1em;margin-bottom:6px;text-transform:uppercase;}
+.usage-panel-list{display:flex;flex-direction:column;gap:4px;font-size:0.7rem;}
+.usage-panel-list .row{display:flex;justify-content:space-between;gap:12px;}
+.usage-panel-list .k{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.usage-panel-list .v{color:var(--muted);white-space:nowrap;}
+.usage-toggle{display:flex;align-items:center;gap:8px;font-size:0.72rem;color:var(--text);margin-bottom:8px;}
+.usage-textarea{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.72rem;padding:10px;resize:vertical;min-height:80px;outline:none;}
+.usage-textarea:focus{border-color:var(--accent);}
+.usage-save-btn{margin-top:8px;background:none;border:1px solid var(--border);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.68rem;padding:7px 12px;cursor:pointer;letter-spacing:0.08em;}
+.usage-save-btn:hover{border-color:var(--green);color:var(--green);}
 
 /* SEARCH */
 .search-wrap{position:relative;margin-bottom:12px;}
