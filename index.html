@@ -288,6 +288,7 @@ async function init(){
   // Register listener FIRST before anything else — this catches the OAuth
   // redirect token AND handles sign out, so it must always be active
   sb.auth.onAuthStateChange(async(event, session)=>{
+    console.log('[auth]', event, session?.user?.email);
     if(event === 'SIGNED_IN' && session){
       history.replaceState(null, '', window.location.pathname);
       if(!currentUser || currentUser.id !== session.user.id){
@@ -295,14 +296,15 @@ async function init(){
       }
     }
     if(event === 'SIGNED_OUT'){
+      console.log('[auth] signing out, calling leaveSyncedMode');
       leaveSyncedMode();
     }
-    if(event === 'INITIAL_SESSION'){
-      if(session){
-        history.replaceState(null, '', window.location.pathname);
-        await enterSyncedMode(session.user);
-      }
-      // No session on initial load — auth screen already showing
+    if(event === 'INITIAL_SESSION' && session){
+      console.log('[auth] initial session:', session?.user?.email);
+      history.replaceState(null, '', window.location.pathname);
+      // Small wait to ensure token is fully ready in the client
+      await new Promise(r => setTimeout(r, 300));
+      await enterSyncedMode(session.user);
     }
   });
 }
@@ -373,6 +375,9 @@ async function enterSyncedMode(user){
     ph.textContent=(user.email||'?')[0].toUpperCase();
     ph.style.display='flex';
   }
+  // Make sure the client has the current session before querying
+  const { data: { session } } = await sb.auth.getSession();
+  console.log('[enterSyncedMode] session valid:', !!session?.access_token);
   await loadSynced();
   subscribeRealtime();
 }
@@ -381,7 +386,9 @@ function leaveSyncedMode(){
   mode='guest'; currentUser=null;
   todos=[]; attMap={};
   if(realtimeCh){sb.removeChannel(realtimeCh); realtimeCh=null;}
-  hide('appScreen'); show('authScreen');
+  document.getElementById('appScreen').style.display='none';
+  document.getElementById('authScreen').style.display='block';
+  render();
 }
 
 async function loadSynced(){
@@ -817,7 +824,11 @@ document.getElementById('btnGoogle').addEventListener('click',()=>
   sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.href}})
 );
 document.getElementById('btnGuest').addEventListener('click',enterGuestMode);
-document.getElementById('btnSignOut').addEventListener('click',()=>sb.auth.signOut());
+document.getElementById('btnSignOut').addEventListener('click', async ()=>{
+  console.log('[signout] button clicked, sb=', !!sb);
+  const {error} = await sb.auth.signOut();
+  console.log('[signout] result error=', error);
+});
 document.getElementById('btnUpgrade').addEventListener('click',()=>{
   hide('appScreen'); show('authScreen');
 });
