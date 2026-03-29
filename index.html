@@ -283,20 +283,27 @@ async function init(){
     return;
   }
 
-  // onAuthStateChange fires immediately with existing session OR
-  // after OAuth redirect — covers both cases without manual hash parsing
+  // If landing back from OAuth, the hash token needs a moment to be processed.
+  // Give Supabase time to parse the URL hash before we check the session.
+  await new Promise(r => setTimeout(r, 100));
+
+  const { data: { session } } = await sb.auth.getSession();
+  if(session){
+    if(window.location.hash.includes('access_token')){
+      history.replaceState(null, '', window.location.pathname);
+    }
+    await enterSyncedMode(session.user);
+  }
+
   sb.auth.onAuthStateChange(async(event, session)=>{
-    if((event==='SIGNED_IN' || event==='INITIAL_SESSION') && session){
-      hide('authScreen');
+    if(event === 'SIGNED_IN' && session && !currentUser){
+      if(window.location.hash.includes('access_token')){
+        history.replaceState(null, '', window.location.pathname);
+      }
       await enterSyncedMode(session.user);
     }
-    if(event==='SIGNED_OUT'){ leaveSyncedMode(); }
+    if(event === 'SIGNED_OUT'){ leaveSyncedMode(); }
   });
-
-  // Clean up the URL if there's a token hash in it
-  if(window.location.hash.includes('access_token')){
-    history.replaceState(null, '', window.location.pathname);
-  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -345,14 +352,22 @@ function saveGuest(){
 // ─────────────────────────────────────────────────────────────────────────────
 async function enterSyncedMode(user){
   mode='synced'; currentUser=user;
-  hide('authScreen'); show('appScreen');
+  hide('authScreen');
+  document.getElementById('appScreen').style.display='block';
   const badge=document.getElementById('modeBadge');
   badge.textContent='SYNCED'; badge.className='mode-badge synced-mode';
-  hide('btnUpgrade'); show('btnSignOut');
+  document.getElementById('btnUpgrade').style.display='none';
+  document.getElementById('btnSignOut').style.display='inline-block';
   const av=document.getElementById('userAvatar');
   const ph=document.getElementById('avatarPh');
-  if(user.user_metadata?.avatar_url){av.src=user.user_metadata.avatar_url;show('userAvatar');ph.style.display='none';}
-  else{ph.textContent=(user.email||'?')[0].toUpperCase();}
+  if(user.user_metadata?.avatar_url){
+    av.src=user.user_metadata.avatar_url;
+    av.style.display='inline-block';
+    ph.style.display='none';
+  } else {
+    ph.textContent=(user.email||'?')[0].toUpperCase();
+    ph.style.display='flex';
+  }
   await loadSynced();
   subscribeRealtime();
 }
