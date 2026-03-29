@@ -105,7 +105,7 @@ function updateStorageMeter() {
 }
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
-sb.auth.onAuthStateChange(async (event, session) => {
+sb.auth.onAuthStateChange((event, session) => {
   if (session) {
     mode = 'synced';
     currentUser = session.user;
@@ -131,7 +131,13 @@ sb.auth.onAuthStateChange(async (event, session) => {
       ph.textContent = (session.user.email||'?')[0].toUpperCase();
     }
 
-    await loadSynced();
+    // Avoid issuing more Supabase calls directly inside the auth callback.
+    setTimeout(() => {
+      loadSynced().catch(error => {
+        dot('err');
+        toast('load error: ' + error.message, 'var(--danger)');
+      });
+    }, 0);
 
   } else {
     mode = 'guest'; currentUser = null;
@@ -143,7 +149,10 @@ sb.auth.onAuthStateChange(async (event, session) => {
 document.getElementById('btnGoogle').addEventListener('click', () =>
   sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } })
 );
-document.getElementById('btnSignOut').addEventListener('click', () => sb.auth.signOut());
+document.getElementById('btnSignOut').addEventListener('click', async () => {
+  const { error } = await sb.auth.signOut();
+  if (error) toast('sign out failed: ' + error.message, 'var(--danger)');
+});
 document.getElementById('btnGuest').addEventListener('click', enterGuestMode);
 document.getElementById('btnUpgrade').addEventListener('click', () => {
   document.getElementById('appScreen').style.display = 'none';
