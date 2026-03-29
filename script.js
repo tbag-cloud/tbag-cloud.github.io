@@ -20,6 +20,7 @@ let confirmDeleteId = null;
 let expandedIds = new Set();
 let openAttIds = new Set();
 let globalUsage = null;
+let siteNotice = null;
 
 const LS_TODOS = 'todo_v3_todos';
 const LS_ATTS  = 'todo_v3_atts';
@@ -61,6 +62,28 @@ function toast(msg, col) {
 
 function dot(s) { document.getElementById('syncDot').className = 'sync-dot ' + s; }
 function isAdminUser() { return !!currentUser?.email && ADMIN_EMAILS.includes(currentUser.email.toLowerCase()); }
+function renderUsageList(elId, rows, emptyText) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (!rows || !rows.length) {
+    el.textContent = emptyText;
+    return;
+  }
+  el.innerHTML = rows.map(row =>
+    '<div class="row"><span class="k">' + esc(row.key) + '</span><span class="v">' + esc(row.value) + '</span></div>'
+  ).join('');
+}
+function updateSiteBanner() {
+  const banner = document.getElementById('siteBanner');
+  if (!banner) return;
+  if (!siteNotice?.enabled || !siteNotice?.message?.trim()) {
+    banner.style.display = 'none';
+    return;
+  }
+  document.getElementById('siteBannerTitle').textContent = siteNotice.maintenance ? 'MAINTENANCE NOTICE' : 'ANNOUNCEMENT';
+  document.getElementById('siteBannerText').textContent = siteNotice.message;
+  banner.style.display = 'block';
+}
 function updateGlobalUsagePanel() {
   const panel = document.getElementById('globalUsagePanel');
   if (!panel) return;
@@ -71,6 +94,17 @@ function updateGlobalUsagePanel() {
   document.getElementById('globalAttachmentBytes').textContent = fmtSize(globalUsage.total_attachment_bytes || 0);
   document.getElementById('globalTodoCount').textContent = fmtCount(globalUsage.total_todo_count || 0);
   document.getElementById('globalAttachmentCount').textContent = fmtCount(globalUsage.total_attachment_count || 0);
+  document.getElementById('globalUserCount').textContent = fmtCount(globalUsage.total_user_count || 0);
+  renderUsageList('topStorageUsers', (globalUsage.top_storage_users || []).map(user => ({
+    key: user.email || user.user_id || 'unknown',
+    value: fmtSize(user.total_bytes || 0) + ' · ' + fmtCount(user.attachment_count || 0) + ' files'
+  })), 'No attachment data');
+  renderUsageList('fileTypeBreakdown', (globalUsage.file_type_breakdown || []).map(type => ({
+    key: type.mime_type || 'unknown',
+    value: fmtCount(type.file_count || 0) + ' · ' + fmtSize(type.total_bytes || 0)
+  })), 'No file types yet');
+  document.getElementById('noticeEnabled').checked = !!siteNotice?.enabled;
+  document.getElementById('noticeText').value = siteNotice?.message || '';
   panel.style.display = 'block';
 }
 
@@ -88,6 +122,35 @@ async function loadGlobalUsage() {
   }
   globalUsage = Array.isArray(data) ? data[0] : data;
   updateGlobalUsagePanel();
+}
+async function loadSiteNotice() {
+  const { data, error } = await sb.rpc('get_public_notice');
+  if (error) {
+    siteNotice = null;
+    updateSiteBanner();
+    return;
+  }
+  siteNotice = Array.isArray(data) ? data[0] : data;
+  updateSiteBanner();
+  updateGlobalUsagePanel();
+}
+async function saveSiteNotice() {
+  if (!isAdminUser()) return;
+  const enabled = document.getElementById('noticeEnabled').checked;
+  const message = document.getElementById('noticeText').value.trim();
+  const { error } = await sb.rpc('set_public_notice', {
+    p_enabled: enabled,
+    p_message: message,
+    p_maintenance: enabled
+  });
+  if (error) {
+    toast('notice save failed: ' + error.message, 'var(--danger)');
+    return;
+  }
+  siteNotice = { enabled, message, maintenance: enabled };
+  updateSiteBanner();
+  updateGlobalUsagePanel();
+  toast('notice saved');
 }
 
 // ── IMAGE COMPRESS ────────────────────────────────────────────────────────────
@@ -227,6 +290,7 @@ document.getElementById('btnUpgrade').addEventListener('click', () => {
   if (!session) {
     document.getElementById('authScreen').style.display = 'block';
   }
+  await loadSiteNotice();
 })();
 
 // ── GUEST MODE ────────────────────────────────────────────────────────────────
@@ -712,6 +776,7 @@ document.querySelectorAll('.filter-btn').forEach(btn => btn.addEventListener('cl
 }));
 document.getElementById('btnClear').addEventListener('click', clearDone);
 document.getElementById('btnClearAtts').addEventListener('click', clearDoneAttachments);
+document.getElementById('saveNoticeBtn').addEventListener('click', saveSiteNotice);
 
 // ── EXPORT / IMPORT ───────────────────────────────────────────────────────────
 document.getElementById('btnExport').addEventListener('click', () => {
