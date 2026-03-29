@@ -21,6 +21,7 @@ let expandedIds = new Set();
 let openAttIds = new Set();
 let globalUsage = null;
 let siteNotice = null;
+let adminPanelOpen = false;
 
 const LS_TODOS = 'todo_v3_todos';
 const LS_ATTS  = 'todo_v3_atts';
@@ -80,9 +81,18 @@ function updateSiteBanner() {
     banner.style.display = 'none';
     return;
   }
+  banner.classList.remove('maintenance', 'announcement');
+  banner.classList.add(siteNotice.maintenance ? 'maintenance' : 'announcement');
   document.getElementById('siteBannerTitle').textContent = siteNotice.maintenance ? 'MAINTENANCE NOTICE' : 'ANNOUNCEMENT';
   document.getElementById('siteBannerText').textContent = siteNotice.message;
   banner.style.display = 'block';
+}
+function updateAdminPanelState() {
+  const panel = document.getElementById('globalUsagePanel');
+  const body = document.getElementById('adminPanelBody');
+  if (!panel || !body) return;
+  panel.classList.toggle('open', adminPanelOpen);
+  body.style.display = adminPanelOpen ? 'block' : 'none';
 }
 function updateGlobalUsagePanel() {
   const panel = document.getElementById('globalUsagePanel');
@@ -105,7 +115,10 @@ function updateGlobalUsagePanel() {
   })), 'No file types yet');
   document.getElementById('noticeEnabled').checked = !!siteNotice?.enabled;
   document.getElementById('noticeText').value = siteNotice?.message || '';
+  document.getElementById('noticeModeAnnouncement').checked = !siteNotice?.maintenance;
+  document.getElementById('noticeModeMaintenance').checked = !!siteNotice?.maintenance;
   panel.style.display = 'block';
+  updateAdminPanelState();
 }
 
 async function loadGlobalUsage() {
@@ -138,16 +151,17 @@ async function saveSiteNotice() {
   if (!isAdminUser()) return;
   const enabled = document.getElementById('noticeEnabled').checked;
   const message = document.getElementById('noticeText').value.trim();
+  const maintenance = document.getElementById('noticeModeMaintenance').checked;
   const { error } = await sb.rpc('set_public_notice', {
     p_enabled: enabled,
     p_message: message,
-    p_maintenance: enabled
+    p_maintenance: maintenance
   });
   if (error) {
     toast('notice save failed: ' + error.message, 'var(--danger)');
     return;
   }
-  siteNotice = { enabled, message, maintenance: enabled };
+  siteNotice = { enabled, message, maintenance };
   updateSiteBanner();
   updateGlobalUsagePanel();
   toast('notice saved');
@@ -777,6 +791,10 @@ document.querySelectorAll('.filter-btn').forEach(btn => btn.addEventListener('cl
 document.getElementById('btnClear').addEventListener('click', clearDone);
 document.getElementById('btnClearAtts').addEventListener('click', clearDoneAttachments);
 document.getElementById('saveNoticeBtn').addEventListener('click', saveSiteNotice);
+document.getElementById('adminPanelToggle').addEventListener('click', () => {
+  adminPanelOpen = !adminPanelOpen;
+  updateAdminPanelState();
+});
 
 // ── EXPORT / IMPORT ───────────────────────────────────────────────────────────
 document.getElementById('btnExport').addEventListener('click', () => {
