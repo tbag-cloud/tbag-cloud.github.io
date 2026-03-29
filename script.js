@@ -840,6 +840,8 @@ document.getElementById('importFile').addEventListener('change', async e => {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+    navigator.serviceWorker.register('./service-worker.js')
+      .then(reg => console.log('service worker registered:', reg.scope))
+      .catch(error => console.error('service worker registration failed:', error));
   });
 }
