@@ -1,274 +1,277 @@
-// ── KEYS ───────────────────────────────────────────────────────────────
-const SUPA_URL = 'https://hxkjwebubmdqjzwmnvrh.supabase.co';
-const SUPA_KEY = 'sb_publishable_iZkIPeb7P6Eb8RCXC1hNOQ_GhIUlnj0';
-const SUPA_MAX_FILE = 50 * 1024 * 1024;
-const SUPA_STORAGE_LIMIT = 50 * 1024 * 1024;
+// ======= CONFIG =======
+const SUPABASE_URL = 'https://YOUR_SUPABASE_URL.supabase.co';
+const SUPABASE_KEY = 'YOUR_SUPABASE_KEY';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ── STATE ──────────────────────────────────────────────────────────────
-let sb = null;
-let mode = 'guest';
+// ======= ELEMENTS =======
+const authScreen = document.getElementById('authScreen');
+const appScreen = document.getElementById('appScreen');
+const btnGoogle = document.getElementById('btnGoogle');
+const btnGuest = document.getElementById('btnGuest');
+const btnSignOut = document.getElementById('btnSignOut');
+const btnUpgrade = document.getElementById('btnUpgrade');
+const syncDot = document.getElementById('syncDot');
+const userAvatar = document.getElementById('userAvatar');
+const avatarPh = document.getElementById('avatarPh');
+const modeBadge = document.getElementById('modeBadge');
+const todoList = document.getElementById('todoList');
+const newTask = document.getElementById('newTask');
+const newPri = document.getElementById('newPri');
+const newDesc = document.getElementById('newDesc');
+const btnAdd = document.getElementById('btnAdd');
+const searchInp = document.getElementById('searchInp');
+const searchClear = document.getElementById('searchClear');
+const filterBtns = document.querySelectorAll('.filter-btn');
+const storageBar = document.getElementById('storageBar');
+const storageFill = document.getElementById('storageFill');
+const storageLabel = document.getElementById('storageLabel');
+const btnExport = document.getElementById('btnExport');
+const btnImport = document.getElementById('btnImport');
+const importFile = document.getElementById('importFile');
+const toastEl = document.getElementById('toast');
+const bottomBar = document.getElementById('bottomBar');
+const bottomCount = document.getElementById('bottomCount');
+const btnClear = document.getElementById('btnClear');
+const btnClearAtts = document.getElementById('btnClearAtts');
+
 let currentUser = null;
-let todos = [];
-let attMap = {};
+let tasks = [];
 let filter = 'all';
-let searchQ = '';
-let editingId = null;
-let confirmDeleteId = null;
-let expandedIds = new Set();
-let openAttIds = new Set();
-let realtimeCh = null;
-const LS_TODOS = 'todo_v3_todos';
-const LS_ATTS  = 'todo_v3_atts';
 
-// ── UTILS ──────────────────────────────────────────────────────────────
-const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
-const fmtDate = iso => new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}).toUpperCase();
-const fmtSize = b => b<1024?b+'B':b<1048576?(b/1024).toFixed(1)+'KB':(b/1048576).toFixed(1)+'MB';
-const mimeIcon = m => m.startsWith('image/')?'🖼':m==='application/pdf'?'📄':m.startsWith('video/')?'🎬':m.startsWith('audio/')?'🎵':m.includes('zip')?'🗜':'📎';
-
-let toastTimer;
-function toast(msg,col){
-  const el=document.getElementById('toast');
-  if(!el) return;
-  el.textContent='// '+msg; el.style.color=col||'var(--green)';
-  el.classList.add('show'); clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>el.classList.remove('show'),2800);
+// ======= TOAST =======
+function showToast(msg, color) {
+    toastEl.textContent = msg;
+    toastEl.style.color = color || 'var(--green)';
+    toastEl.classList.add('show');
+    setTimeout(() => toastEl.classList.remove('show'), 2000);
 }
 
-function dot(s){ const el=document.getElementById('syncDot'); if(el) el.className='sync-dot '+s; }
-function show(id){ const el=document.getElementById(id); if(el) el.style.display='block'; }
-function hide(id){ const el=document.getElementById(id); if(el) el.style.display='none'; }
-
-// ── IMAGE COMPRESS ───────────────────────────────────────────────────
-async function compressImage(file, maxW=1600, quality=0.82){
-  return new Promise(resolve=>{
-    if(!file.type.startsWith('image/')){ resolve(file); return; }
-    const img=new Image();
-    const url=URL.createObjectURL(file);
-    img.onload=()=>{
-      URL.revokeObjectURL(url);
-      let {width:w,height:h}=img;
-      if(w<=maxW&&h<=maxW){ resolve(file); return; }
-      const ratio=Math.min(maxW/w,maxW/h);
-      w=Math.round(w*ratio); h=Math.round(h*ratio);
-      const c=document.createElement('canvas');
-      c.width=w; c.height=h;
-      c.getContext('2d').drawImage(img,0,0,w,h);
-      c.toBlob(blob=>{
-        if(!blob||blob.size>=file.size){ resolve(file); return; }
-        resolve(new File([blob],file.name,{type:blob.type||file.type}));
-      },file.type||'image/jpeg',quality);
-    };
-    img.onerror=()=>{ URL.revokeObjectURL(url); resolve(file); };
-    img.src=url;
-  });
+// ======= STORAGE =======
+function saveLocal() {
+    localStorage.setItem('todoTasks', JSON.stringify(tasks));
 }
 
-// ── STORAGE METER ────────────────────────────────────────────────────
-function updateStorageMeter(){
-  const bar=document.getElementById('storageBar');
-  const fill=document.getElementById('storageFill');
-  const label=document.getElementById('storageLabel');
-  if(!bar||!fill||!label) return;
-
-  if(mode==='guest'){
-    let bytes=0;
-    try{ bytes=(localStorage.getItem(LS_TODOS)||'').length + (localStorage.getItem(LS_ATTS)||'').length; }catch{}
-    const pct=Math.min(100,(bytes/5000000)*100);
-    bar.className='storage-bar visible';
-    fill.className='storage-fill'+(pct>80?' danger':pct>60?' warn':'');
-    fill.style.width=pct.toFixed(1)+'%';
-    label.textContent='local storage: '+fmtSize(bytes)+' / ~5MB ('+pct.toFixed(0)+'%)';
-  } else {
-    let bytes=Object.values(attMap).flat().reduce((s,a)=>s+(a.size||0),0);
-    const pct=Math.min(100,(bytes/SUPA_STORAGE_LIMIT)*100);
-    bar.className='storage-bar visible';
-    fill.className='storage-fill'+(pct>80?' danger':pct>60?' warn':'');
-    fill.style.width=pct.toFixed(1)+'%';
-    label.textContent='supabase storage: '+fmtSize(bytes)+' / 50MB ('+pct.toFixed(0)+'%)';
-    const doneIds=new Set(todos.filter(t=>t.done).map(t=>t.id));
-    const hasDoneAtts=Object.keys(attMap).some(id=>doneIds.has(id)&&attMap[id].length>0);
-    const btnClear=document.getElementById('btnClearAtts');
-    if(btnClear) btnClear.style.display=hasDoneAtts?'inline-block':'none';
-  }
+function loadLocal() {
+    const saved = localStorage.getItem('todoTasks');
+    if (saved) tasks = JSON.parse(saved);
 }
 
-// ── INIT ─────────────────────────────────────────────────────────────
-async function init(){
-  try{
-    if (!window.supabase) {
-      console.error('Supabase not loaded');
-      show('authScreen');
-      return;
-    }
-    sb = window.supabase.createClient(SUPA_URL, SUPA_KEY, {
-      auth:{ detectSessionInUrl:false, persistSession:true, storageKey:'todo-app-auth' }
-    });
-    window._sb = sb;
-  }catch(e){
-    console.error('Supabase init failed:', e);
-    show('authScreen');
-    return;
-  }
+// ======= RENDER =======
+function renderTasks() {
+    todoList.innerHTML = '';
+    let visibleCount = 0;
 
-  // check for hash tokens
-  const hash = window.location.hash;
-  if(hash && hash.includes('access_token')){
-    const params = new URLSearchParams(hash.replace(/^#+/,''));
-    const at = params.get('access_token');
-    const rt = params.get('refresh_token');
-    if(at && rt){
-      await sb.auth.setSession({ access_token: at, refresh_token: rt });
-      history.replaceState(null,'',window.location.pathname);
-    }
-  }
+    tasks.forEach((t, i) => {
+        // FILTER
+        if (filter === 'active' && t.done) return;
+        if (filter === 'done' && !t.done) return;
+        if (filter === 'high' && t.priority !== 'high') return;
+        if (searchInp.value && !t.text.toLowerCase().includes(searchInp.value.toLowerCase())) return;
 
-  const { data: { session } } = await sb.auth.getSession();
-  if(session) await enterSyncedMode(session.user);
-  else show('authScreen');
+        visibleCount++;
 
-  sb.auth.onAuthStateChange(async (event, session)=>{
-    if(event==='SIGNED_IN' && session) await enterSyncedMode(session.user);
-    if(event==='SIGNED_OUT'){ leaveSyncedMode(); show('authScreen'); }
-  });
-}
+        const item = document.createElement('div');
+        item.className = `todo-item${t.done ? ' done' : ''}`;
 
-// ── GUEST MODE ─────────────────────────────────────────────────────────
-function enterGuestMode(){
-  mode='guest'; currentUser=null;
-  hide('authScreen'); show('appScreen');
-  const badge=document.getElementById('modeBadge');
-  if(badge){ badge.textContent='GUEST'; badge.className='mode-badge guest-mode'; }
-  const btnUpgrade=document.getElementById('btnUpgrade'); if(btnUpgrade) btnUpgrade.style.display='inline-block';
-  const btnSignOut=document.getElementById('btnSignOut'); if(btnSignOut) btnSignOut.style.display='none';
-  const av=document.getElementById('userAvatar'); if(av) av.style.display='none';
-  const ph=document.getElementById('avatarPh'); if(ph) ph.textContent='?';
-  dot('');
-  loadGuest();
-}
+        const pbar = document.createElement('div');
+        pbar.className = 'pbar ' + (t.priority === 'high' ? 'high' : t.priority === 'medium' ? 'medium' : 'low');
+        item.appendChild(pbar);
 
-function loadGuest(){
-  try{ todos=JSON.parse(localStorage.getItem(LS_TODOS)||'[]'); }catch{ todos=[]; }
-  try{ attMap=JSON.parse(localStorage.getItem(LS_ATTS)||'{}'); }catch{ attMap={}; }
-  render(); updateStorageMeter();
-}
+        const checkArea = document.createElement('div');
+        checkArea.className = 'check-area';
+        const checkBox = document.createElement('div');
+        checkBox.className = 'check-box';
+        checkArea.appendChild(checkBox);
+        checkArea.addEventListener('click', () => {
+            t.done = !t.done;
+            saveLocal();
+            renderTasks();
+        });
+        item.appendChild(checkArea);
 
-function saveGuest(){
-  try{
-    localStorage.setItem(LS_TODOS, JSON.stringify(todos));
-    localStorage.setItem(LS_ATTS, JSON.stringify(attMap));
-  }catch(e){
-    toast('storage full — data may not save','var(--accent2)');
-  }
-  updateStorageMeter();
-}
+        const body = document.createElement('div');
+        body.className = 'todo-body';
+        const text = document.createElement('div');
+        text.className = 'todo-text';
+        text.textContent = t.text;
+        body.appendChild(text);
 
-// ── SYNCED MODE ───────────────────────────────────────────────────────
-async function enterSyncedMode(user){
-  mode='synced'; currentUser=user;
-  hide('authScreen'); show('appScreen');
-  const badge=document.getElementById('modeBadge');
-  if(badge){ badge.textContent='SYNCED'; badge.className='mode-badge synced-mode'; }
-  const btnUpgrade=document.getElementById('btnUpgrade'); if(btnUpgrade) btnUpgrade.style.display='none';
-  const btnSignOut=document.getElementById('btnSignOut'); if(btnSignOut) btnSignOut.style.display='inline-block';
+        if (t.desc) {
+            const desc = document.createElement('div');
+            desc.className = 'todo-desc' + (t.expanded ? ' open' : '');
+            desc.textContent = t.desc;
+            body.appendChild(desc);
 
-  const av=document.getElementById('userAvatar');
-  const ph=document.getElementById('avatarPh');
-  if(currentUser.user_metadata?.avatar_url && av && ph){
-    av.src=currentUser.user_metadata.avatar_url;
-    av.style.display='inline-block';
-    ph.style.display='none';
-  } else if(ph){ ph.textContent=(currentUser.email||'?')[0].toUpperCase(); if(av) av.style.display='none'; }
+            const expandBtn = document.createElement('button');
+            expandBtn.className = 'expand-btn' + (t.expanded ? ' open vis' : '');
+            expandBtn.innerHTML = `Details <span class="arr">▶</span>`;
+            expandBtn.addEventListener('click', () => {
+                t.expanded = !t.expanded;
+                renderTasks();
+            });
+            body.appendChild(expandBtn);
+        }
 
-  await loadSynced();
-  subscribeRealtime();
-}
+        item.appendChild(body);
 
-function leaveSyncedMode(){
-  mode='guest'; currentUser=null; todos=[]; attMap={};
-  if(realtimeCh){ sb.removeChannel(realtimeCh); realtimeCh=null; }
-  const appScreen=document.getElementById('appScreen'); if(appScreen) appScreen.style.display='none';
-  const authScreen=document.getElementById('authScreen'); if(authScreen) authScreen.style.display='block';
-}
+        const actions = document.createElement('div');
+        actions.className = 'todo-actions';
 
-async function loadSynced(){
-  dot('syncing');
-  const { data: { session } } = await sb.auth.getSession();
-  if(!session){ dot('err'); toast('session lost — please sign in again','var(--danger)'); leaveSyncedMode(); return; }
+        const editBtn = document.createElement('button');
+        editBtn.className = 'act';
+        editBtn.textContent = 'EDIT';
+        editBtn.addEventListener('click', () => editTask(i));
+        actions.appendChild(editBtn);
 
-  try {
-    const [tResult, aResult] = await Promise.all([
-      sb.from('todos').select('*').eq('user_id', currentUser.id).order('created',{ascending:false}),
-      sb.from('attachments').select('*').eq('user_id', currentUser.id).order('created',{ascending:true})
-    ]);
+        const delBtn = document.createElement('button');
+        delBtn.className = 'act del';
+        delBtn.textContent = 'DELETE';
+        delBtn.addEventListener('click', () => deleteTask(i));
+        actions.appendChild(delBtn);
 
-    if(tResult.error) throw tResult.error;
-    if(aResult.error) throw aResult.error;
+        item.appendChild(actions);
 
-    todos = (tResult.data||[]).map(t=>({...t,desc:t.description||''}));
-
-    attMap={};
-    (aResult.data||[]).forEach(a=>{
-      (attMap[a.todo_id]=attMap[a.todo_id]||[]).push({
-        id:a.id,name:a.name,size:a.size,mime:a.mime_type,path:a.path,todoId:a.todo_id
-      });
+        todoList.appendChild(item);
     });
 
-    dot('ok'); render(); updateStorageMeter();
-  } catch(err){
-    dot('err'); toast('load error: '+(err.message||err),'var(--danger)');
-  }
+    bottomBar.style.display = visibleCount ? 'flex' : 'none';
+    bottomCount.textContent = `${tasks.filter(t => t.done).length} done / ${tasks.length} total`;
 }
 
-function subscribeRealtime(){
-  if(realtimeCh) sb.removeChannel(realtimeCh);
-  let rtTimer;
-  function safeReload(){ clearTimeout(rtTimer); rtTimer=setTimeout(()=>loadSynced(),250); }
-  realtimeCh = sb.channel('rt-'+currentUser.id)
-    .on('postgres_changes',{event:'*',schema:'public',table:'todos'},safeReload)
-    .on('postgres_changes',{event:'*',schema:'public',table:'attachments'},safeReload)
-    .subscribe();
+// ======= TASK CRUD =======
+function addTask() {
+    const text = newTask.value.trim();
+    if (!text) return showToast('Task cannot be empty', 'var(--accent2)');
+    tasks.push({
+        text,
+        priority: newPri.value,
+        desc: newDesc.value.trim(),
+        done: false,
+        expanded: false
+    });
+    newTask.value = '';
+    newDesc.value = '';
+    saveLocal();
+    renderTasks();
 }
 
-// ── CRUD ───────────────────────────────────────────────────────────────
-async function addTodo(text,priority,desc){
-  text=text.trim(); if(!text) return;
-  if(mode==='guest'){
-    todos.unshift({ id:uid(), text, desc:desc.trim(), priority, done:false, created:new Date().toISOString() });
-    saveGuest(); render(); return;
-  }
-
-  const tempId='temp-'+uid();
-  const tempTodo={ id:tempId,text,desc:desc.trim(),priority,done:false,created:new Date().toISOString(),_optimistic:true };
-  todos.unshift(tempTodo); render(); dot('syncing');
-
-  const { data,error } = await sb.from('todos').insert({
-    user_id: currentUser.id, text, description:desc.trim(), priority, done:false
-  }).select().single();
-
-  if(error){
-    todos=todos.filter(t=>t.id!==tempId); dot('err'); render(); toast('add failed: '+error.message,'var(--danger)'); return;
-  }
-
-  const i=todos.findIndex(t=>t.id===tempId);
-  if(i!==-1) todos[i]={ ...data, desc:data.description||'' };
-  dot('ok'); render(); updateStorageMeter();
+function editTask(i) {
+    const t = tasks[i];
+    const newText = prompt('Edit task text:', t.text);
+    if (newText !== null) t.text = newText.trim();
+    const newDesc = prompt('Edit description:', t.desc || '');
+    if (newDesc !== null) t.desc = newDesc.trim();
+    saveLocal();
+    renderTasks();
 }
 
-// ── LISTENERS ─────────────────────────────────────────────────────────
-document.getElementById('btnAdd')?.addEventListener('click',()=>{
-  const t=document.getElementById('newTask');
-  const p=document.getElementById('newPri');
-  const d=document.getElementById('newDesc');
-  if(!t||!p||!d) return;
-  addTodo(t.value,p.value,d.value);
-  t.value=''; d.value=''; t.focus();
+function deleteTask(i) {
+    if (!confirm('Delete this task?')) return;
+    tasks.splice(i, 1);
+    saveLocal();
+    renderTasks();
+}
+
+// ======= EVENTS =======
+btnAdd.addEventListener('click', addTask);
+newTask.addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
+searchInp.addEventListener('input', renderTasks);
+searchClear.addEventListener('click', () => { searchInp.value=''; renderTasks(); });
+filterBtns.forEach(btn => btn.addEventListener('click', () => {
+    filterBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    filter = btn.dataset.f;
+    renderTasks();
+}));
+
+btnClear.addEventListener('click', () => {
+    tasks = tasks.filter(t => !t.done);
+    saveLocal();
+    renderTasks();
 });
 
-document.getElementById('btnGoogle')?.addEventListener('click',()=> sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.href}}));
-document.getElementById('btnGuest')?.addEventListener('click',enterGuestMode);
-document.getElementById('btnSignOut')?.addEventListener('click',async()=>{ if(sb) await sb.auth.signOut(); });
+// ======= IMPORT/EXPORT =======
+btnExport.addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(tasks, null, 2)], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'tasks.json';
+    a.click();
+    URL.revokeObjectURL(url);
+});
 
-// ── INIT ─────────────────────────────────────────────────────────────
-init();
+btnImport.addEventListener('click', () => importFile.click());
+importFile.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+        try {
+            const imported = JSON.parse(reader.result);
+            tasks = imported;
+            saveLocal();
+            renderTasks();
+            showToast('Tasks imported');
+        } catch {
+            showToast('Invalid JSON', 'var(--danger)');
+        }
+    };
+    reader.readAsText(file);
+});
+
+// ======= AUTH =======
+async function signInGoogle() {
+    const { data, error } = await sb.auth.signInWithOAuth({ provider: 'google' });
+    if (error) return showToast(error.message, 'var(--danger)');
+    currentUser = data.user;
+    showApp();
+}
+
+function signInGuest() {
+    currentUser = { guest: true };
+    showApp();
+}
+
+function signOut() {
+    sb.auth.signOut();
+    currentUser = null;
+    showAuth();
+}
+
+btnGoogle.addEventListener('click', signInGoogle);
+btnGuest.addEventListener('click', signInGuest);
+btnSignOut.addEventListener('click', signOut);
+btnUpgrade.addEventListener('click', signInGoogle);
+
+// ======= UI TOGGLE =======
+function showApp() {
+    authScreen.style.display = 'none';
+    appScreen.style.display = 'block';
+    modeBadge.textContent = currentUser.guest ? 'GUEST' : 'SYNCED';
+    btnSignOut.style.display = currentUser.guest ? 'none' : 'inline-flex';
+    btnUpgrade.style.display = currentUser.guest ? 'inline-flex' : 'none';
+    userAvatar.style.display = currentUser.user_metadata?.avatar_url ? 'inline-block' : 'none';
+    avatarPh.style.display = userAvatar.style.display === 'none' ? 'flex' : 'none';
+    renderTasks();
+    updateStorage();
+}
+
+function showAuth() {
+    authScreen.style.display = 'block';
+    appScreen.style.display = 'none';
+}
+
+// ======= STORAGE BAR =======
+function updateStorage() {
+    const used = new Blob([JSON.stringify(tasks)]).size;
+    const limit = 50000;
+    const pct = Math.min((used/limit)*100,100);
+    storageBar.style.display = 'block';
+    storageFill.style.width = pct+'%';
+    storageLabel.textContent = `storage: ${used} / ${limit} bytes`;
+}
+
+// ======= INIT =======
+loadLocal();
+showAuth();
