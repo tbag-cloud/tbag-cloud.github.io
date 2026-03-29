@@ -52,6 +52,11 @@ h1 span{color:var(--accent);}
 .storage-fill.warn{background:var(--accent2);}
 .storage-fill.full{background:var(--danger);}
 #dbStorageBar{margin-top:6px;}
+.usage-panel{margin-top:10px;border:1px solid var(--border);background:var(--surface);padding:10px 12px;}
+.usage-panel-title{font-size:0.62rem;color:var(--muted);letter-spacing:0.12em;margin-bottom:8px;}
+.usage-panel-row{display:flex;justify-content:space-between;gap:12px;font-size:0.7rem;padding:3px 0;}
+.usage-panel-key{color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;}
+.usage-panel-val{color:var(--text);}
 
 /* SEARCH */
 .search-wrap{position:relative;margin-bottom:12px;}
