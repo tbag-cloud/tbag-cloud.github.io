@@ -389,10 +389,13 @@ function leaveSyncedMode(){
 
 async function loadSynced(){
   dot('syncing');
+  const {data:{session}} = await sb.auth.getSession();
+  console.log('[loadSynced] session:', session?.user?.email, 'token:', session?.access_token?.slice(0,20));
   const [{data:tData,error:tErr},{data:aData}] = await Promise.all([
     sb.from('todos').select('*').order('created',{ascending:false}),
     sb.from('attachments').select('*').order('created',{ascending:true})
   ]);
+  console.log('[loadSynced] todos:', tData?.length, 'err:', tErr?.message);
   if(tErr){dot('err');toast('load error: '+tErr.message,'var(--danger)');return;}
   todos=(tData||[]).map(t=>({...t, desc: t.description||''}));
   attMap={};
@@ -424,8 +427,8 @@ async function addTodo(text,priority,desc){
   } else {
     dot('syncing');
     const {error}=await sb.from('todos').insert({user_id:currentUser.id,text,description:desc.trim(),priority,done:false});
-    if(error){dot('err');toast('add failed','var(--danger)');}else dot('ok');
-    // realtime picks it up
+    if(error){dot('err');toast('add failed: '+error.message,'var(--danger)');}
+    else{ await loadSynced(); }
   }
 }
 
@@ -436,7 +439,8 @@ async function toggleDone(id){
     t.done=!t.done; render(); // optimistic
     dot('syncing');
     const {error}=await sb.from('todos').update({done:t.done,updated:new Date().toISOString()}).eq('id',id);
-    if(error){t.done=!t.done;dot('err');toast('update failed','var(--danger)');render();}else dot('ok');
+    if(error){t.done=!t.done;dot('err');toast('update failed','var(--danger)');render();}
+    else dot('ok');
   }
 }
 
@@ -445,12 +449,10 @@ async function deleteTodo(id){
     todos=todos.filter(t=>t.id!==id); delete attMap[id]; saveGuest(); render();
   } else {
     dot('syncing');
-    for(const a of (attMap[id]||[])){
-      if(a.path) await sb.storage.from('attachments').remove([a.path]);
-    }
+    for(const a of (attMap[id]||[])) if(a.path) await sb.storage.from('attachments').remove([a.path]);
     const {error}=await sb.from('todos').delete().eq('id',id);
     if(error){dot('err');toast('delete failed','var(--danger)');return;}
-    todos=todos.filter(t=>t.id!==id); delete attMap[id]; render(); dot('ok');
+    await loadSynced();
   }
 }
 
@@ -464,9 +466,8 @@ async function commitEdit(id,text,desc){
     dot('syncing');
     const {error}=await sb.from('todos').update({text,description:desc.trim(),updated:new Date().toISOString()}).eq('id',id);
     if(error){dot('err');toast('save failed','var(--danger)');return;}
-    const t=todos.find(t=>t.id===id);
-    if(t){t.text=text;t.desc=desc.trim();}
-    editingId=null; render(); dot('ok');
+    editingId=null;
+    await loadSynced();
   }
 }
 
