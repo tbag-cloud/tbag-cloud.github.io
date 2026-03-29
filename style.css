@@ -51,6 +51,7 @@ h1 span{color:var(--accent);}
 .storage-fill{height:100%;background:var(--green);transition:width 0.5s;}
 .storage-fill.warn{background:var(--accent2);}
 .storage-fill.full{background:var(--danger);}
+#dbStorageBar{margin-top:6px;}
 
 /* SEARCH */
 .search-wrap{position:relative;margin-bottom:12px;}
