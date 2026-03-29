@@ -276,40 +276,27 @@ function hide(id){const el=document.getElementById(id);if(el)el.style.display='n
 // ─────────────────────────────────────────────────────────────────────────────
 async function init(){
   try {
-    sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+    sb = window.supabase.createClient(SUPA_URL, SUPA_KEY, {
+      auth: { detectSessionInUrl: true, persistSession: true }
+    });
   } catch(e) {
-    return; // Supabase failed to load — guest mode still works
+    return;
   }
 
-  // When Supabase redirects back after OAuth it puts the token in the URL hash.
-  // In a plain HTML file we need to explicitly tell Supabase to pick it up.
-  if(window.location.hash && window.location.hash.includes('access_token')){
-    // Strip any doubled ## that can happen with GitHub Pages root repos
-    const hash = window.location.hash.replace(/^#+/, '#');
-    const params = new URLSearchParams(hash.slice(1));
-    const accessToken = params.get('access_token');
-    const refreshToken = params.get('refresh_token');
-    if(accessToken && refreshToken){
-      const {data, error} = await sb.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken
-      });
-      if(!error && data.session){
-        // Clean the URL
-        history.replaceState(null, '', window.location.pathname);
-        await enterSyncedMode(data.session.user);
-        return;
-      }
+  // onAuthStateChange fires immediately with existing session OR
+  // after OAuth redirect — covers both cases without manual hash parsing
+  sb.auth.onAuthStateChange(async(event, session)=>{
+    if((event==='SIGNED_IN' || event==='INITIAL_SESSION') && session){
+      hide('authScreen');
+      await enterSyncedMode(session.user);
     }
-  }
-
-  const {data:{session}} = await sb.auth.getSession();
-  if(session){ await enterSyncedMode(session.user); }
-
-  sb.auth.onAuthStateChange(async(event,session)=>{
-    if(event==='SIGNED_IN'&&session){ hide('authScreen'); await enterSyncedMode(session.user); }
     if(event==='SIGNED_OUT'){ leaveSyncedMode(); }
   });
+
+  // Clean up the URL if there's a token hash in it
+  if(window.location.hash.includes('access_token')){
+    history.replaceState(null, '', window.location.pathname);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
