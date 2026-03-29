@@ -5,6 +5,7 @@ const MAX_GUEST_FILE = 5 * 1024 * 1024;
 const MAX_SYNC_FILE  = 1024 * 1024 * 1024;
 const SYNC_STORAGE_LIMIT = 1024 * 1024 * 1024;
 const DATABASE_LIMIT_ESTIMATE = 500 * 1024 * 1024;
+const ADMIN_EMAILS = ['themiplayz1@gmail.com'];
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
@@ -18,6 +19,7 @@ let editingId = null;
 let confirmDeleteId = null;
 let expandedIds = new Set();
 let openAttIds = new Set();
+let globalUsage = null;
 
 const LS_TODOS = 'todo_v3_todos';
 const LS_ATTS  = 'todo_v3_atts';
@@ -33,6 +35,7 @@ const fmtSize = b => {
   return (b / (1024 ** 3)).toFixed(2) + 'GB';
 };
 const mimeIcon = m => m.startsWith('image/')?'🖼':m==='application/pdf'?'📄':m.startsWith('video/')?'🎬':m.startsWith('audio/')?'🎵':m.includes('zip')?'🗜':'📎';
+const fmtCount = n => new Intl.NumberFormat('en-GB').format(n || 0);
 
 // Normalize DB row → JS object
 function normalize(t) {
@@ -57,6 +60,35 @@ function toast(msg, col) {
 }
 
 function dot(s) { document.getElementById('syncDot').className = 'sync-dot ' + s; }
+function isAdminUser() { return !!currentUser?.email && ADMIN_EMAILS.includes(currentUser.email.toLowerCase()); }
+function updateGlobalUsagePanel() {
+  const panel = document.getElementById('globalUsagePanel');
+  if (!panel) return;
+  if (mode !== 'synced' || !isAdminUser() || !globalUsage) {
+    panel.style.display = 'none';
+    return;
+  }
+  document.getElementById('globalAttachmentBytes').textContent = fmtSize(globalUsage.total_attachment_bytes || 0);
+  document.getElementById('globalTodoCount').textContent = fmtCount(globalUsage.total_todo_count || 0);
+  document.getElementById('globalAttachmentCount').textContent = fmtCount(globalUsage.total_attachment_count || 0);
+  panel.style.display = 'block';
+}
+
+async function loadGlobalUsage() {
+  if (mode !== 'synced' || !isAdminUser()) {
+    globalUsage = null;
+    updateGlobalUsagePanel();
+    return;
+  }
+  const { data, error } = await sb.rpc('get_global_usage_totals');
+  if (error) {
+    globalUsage = null;
+    updateGlobalUsagePanel();
+    return;
+  }
+  globalUsage = Array.isArray(data) ? data[0] : data;
+  updateGlobalUsagePanel();
+}
 
 // ── IMAGE COMPRESS ────────────────────────────────────────────────────────────
 async function compressImage(file, maxW=1600, quality=0.82) {
@@ -96,6 +128,8 @@ function updateStorageMeter() {
   if (mode === 'guest') {
     document.getElementById('btnClearAtts').style.display = 'none';
     dbBar.className = 'storage-bar';
+    globalUsage = null;
+    updateGlobalUsagePanel();
     let bytes = 0;
     try { bytes = (localStorage.getItem(LS_TODOS)||'').length + (localStorage.getItem(LS_ATTS)||'').length; } catch {}
     const pct = Math.min(100, (bytes / 5000000) * 100);
@@ -120,6 +154,7 @@ function updateStorageMeter() {
     const doneIds = new Set(todos.filter(t=>t.done).map(t=>t.id));
     const hasDoneAtts = Object.keys(attMap).some(id => doneIds.has(id) && attMap[id].length > 0);
     document.getElementById('btnClearAtts').style.display = hasDoneAtts ? 'inline-block' : 'none';
+    updateGlobalUsagePanel();
   }
 }
 
@@ -208,6 +243,7 @@ function enterGuestMode() {
   dot('');
   try { todos = JSON.parse(localStorage.getItem(LS_TODOS) || '[]'); } catch { todos = []; }
   try { attMap = JSON.parse(localStorage.getItem(LS_ATTS) || '{}'); } catch { attMap = {}; }
+  globalUsage = null;
   render(); updateStorageMeter();
 }
 
@@ -241,6 +277,7 @@ async function loadSynced() {
   });
 
   dot('ok'); render(); updateStorageMeter();
+  await loadGlobalUsage();
 }
 
 // ── CRUD ──────────────────────────────────────────────────────────────────────
