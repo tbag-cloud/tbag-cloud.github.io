@@ -2,7 +2,7 @@
 // CONFIG
 // ─────────────────────────────────────────────────────────────────────────────
 const SUPA_URL = 'https://hxkjwebubmdqjzwmnvrh.supabase.co';
-const SUPA_KEY = 'YOUR_SUPABASE_ANON_KEY'; // Replace with your actual anon key
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh4a2p3ZWJ1Ym1kcWp6d21udnJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MTg2ODcsImV4cCI6MjA5MDI5NDY4N30.0fnGt5D7BJQQKdWpqZDGTfhtFWnAnSB02Nmw8nvT3sA'; 
 
 const LS_TODOS = 'todo_v3_todos';
 
