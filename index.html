@@ -275,7 +275,6 @@ function hide(id){const el=document.getElementById(id);if(el)el.style.display='n
 // INIT
 // ─────────────────────────────────────────────────────────────────────────────
 async function init(){
-  // Always show auth screen first
   show('authScreen');
 
   try {
@@ -286,23 +285,25 @@ async function init(){
     return;
   }
 
-  // Small delay so detectSessionInUrl can parse hash before getSession
-  await new Promise(r => setTimeout(r, 200));
-
-  const { data: { session } } = await sb.auth.getSession();
-  if(session){
-    history.replaceState(null, '', window.location.pathname);
-    await enterSyncedMode(session.user);
-    return;
-  }
-
-  // Still listen for sign in / sign out
+  // Register listener FIRST before anything else — this catches the OAuth
+  // redirect token AND handles sign out, so it must always be active
   sb.auth.onAuthStateChange(async(event, session)=>{
-    if(event === 'SIGNED_IN' && session && !currentUser){
+    if(event === 'SIGNED_IN' && session){
       history.replaceState(null, '', window.location.pathname);
-      await enterSyncedMode(session.user);
+      if(!currentUser || currentUser.id !== session.user.id){
+        await enterSyncedMode(session.user);
+      }
     }
-    if(event === 'SIGNED_OUT'){ leaveSyncedMode(); }
+    if(event === 'SIGNED_OUT'){
+      leaveSyncedMode();
+    }
+    if(event === 'INITIAL_SESSION'){
+      if(session){
+        history.replaceState(null, '', window.location.pathname);
+        await enterSyncedMode(session.user);
+      }
+      // No session on initial load — auth screen already showing
+    }
   });
 }
 
