@@ -364,7 +364,7 @@ async function loadSynced(){
     sb.from('attachments').select('*').order('created',{ascending:true})
   ]);
   if(tErr){dot('err');toast('load error: '+tErr.message,'var(--danger)');return;}
-  todos=tData||[];
+  todos=(tData||[]).map(t=>({...t, desc: t.description||''}));
   attMap={};
   (aData||[]).forEach(a=>{
     (attMap[a.todo_id]=attMap[a.todo_id]||[]).push({
@@ -393,7 +393,7 @@ async function addTodo(text,priority,desc){
     saveGuest(); render();
   } else {
     dot('syncing');
-    const {error}=await sb.from('todos').insert({user_id:currentUser.id,text,desc:desc.trim(),priority,done:false});
+    const {error}=await sb.from('todos').insert({user_id:currentUser.id,text,description:desc.trim(),priority,done:false});
     if(error){dot('err');toast('add failed','var(--danger)');}else dot('ok');
     // realtime picks it up
   }
@@ -432,7 +432,7 @@ async function commitEdit(id,text,desc){
     editingId=null; saveGuest(); render();
   } else {
     dot('syncing');
-    const {error}=await sb.from('todos').update({text,desc:desc.trim(),updated:new Date().toISOString()}).eq('id',id);
+    const {error}=await sb.from('todos').update({text,description:desc.trim(),updated:new Date().toISOString()}).eq('id',id);
     if(error){dot('err');toast('save failed','var(--danger)');return;}
     const t=todos.find(t=>t.id===id);
     if(t){t.text=text;t.desc=desc.trim();}
@@ -763,7 +763,7 @@ document.getElementById('importFile').addEventListener('change',async e=>{
           id: mode==='guest'?uid():undefined,
           user_id: mode==='synced'?currentUser.id:undefined,
           text:t.text.trim(),
-          desc:typeof t.desc==='string'?t.desc:'',
+          description:typeof t.desc==='string'?t.desc:'',
           priority:['low','medium','high'].includes(t.priority)?t.priority:'medium',
           done:typeof t.done==='boolean'?t.done:false,
           created:t.created||new Date().toISOString()
