@@ -858,64 +858,41 @@ el.btnGoogle?.addEventListener('click', async () => {
 // ─────────────────────────────────────────────────────────────────────────────
 async function init() {
   try {
-    if (!window.supabase) {
-      console.error('Supabase library missing');
-      show('authScreen');
+    if (!window.createClient) {
+      console.error('Supabase client library not loaded');
+      toast('Supabase not ready', 'var(--danger)');
       return;
     }
 
-    sb = window.supabase.createClient(SUPA_URL, SUPA_KEY, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-        storageKey: 'todo-app-auth',
-      },
-    });
+    // initialize Supabase
+    sb = window.createClient(SUPA_URL, SUPA_KEY);
 
-    // Support URL hash sessions just in case
-    const hash = window.location.hash;
-    if (hash && hash.includes('access_token')) {
-      const params = new URLSearchParams(hash.replace(/^#+/, ''));
-      const access_token = params.get('access_token');
-      const refresh_token = params.get('refresh_token');
-
-      if (access_token && refresh_token) {
-        await sb.auth.setSession({ access_token, refresh_token });
-        history.replaceState(null, '', window.location.pathname + window.location.search);
-      }
-    }
-
-    const { data: { session } } = await sb.auth.getSession();
+    // check if user is already signed in
+    const { data: { session }, error } = await sb.auth.getSession();
+    if (error) throw error;
 
     if (session?.user) {
+      // user already signed in
       await enterSyncedMode(session.user);
     } else {
-      mode = 'guest';
-      setScreen(false);
-      setModeUI('guest');
-      show('authScreen');
-      hide('appScreen');
+      // fallback to guest mode
+      enterGuestMode();
     }
 
-    sb.auth.onAuthStateChange(async (event, session) => {
+    // listen to auth state changes
+    sb.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
-        await enterSyncedMode(session.user);
-      }
-
-      if (event === 'SIGNED_OUT') {
-        leaveSyncedMode();
-        mode = 'guest';
-        setModeUI('guest');
-        show('authScreen');
-        hide('appScreen');
+        enterSyncedMode(session.user);
+      } else if (event === 'SIGNED_OUT') {
+        enterGuestMode();
       }
     });
   } catch (err) {
-    console.error('Init failed:', err);
+    console.error(err);
     toast(`init failed: ${err.message || err}`, 'var(--danger)');
-    show('authScreen');
+    enterGuestMode();
   }
 }
 
+// run init on page load
 init();
