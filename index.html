@@ -10,6 +10,11 @@
 </head>
 <body>
 
+<div class="site-banner" id="siteBanner" style="display:none">
+  <div class="site-banner-title" id="siteBannerTitle">NOTICE</div>
+  <div class="site-banner-text" id="siteBannerText"></div>
+</div>
+
 <div id="authScreen">
   <h2>// <span>TODO</span></h2>
   <p>Sign in to sync across devices — or continue as a guest with local storage and file attachments.</p>
@@ -58,6 +63,27 @@
       <div class="usage-panel-row">
         <span class="usage-panel-key">total attachments</span>
         <span class="usage-panel-val" id="globalAttachmentCount">—</span>
+      </div>
+      <div class="usage-panel-row">
+        <span class="usage-panel-key">total users</span>
+        <span class="usage-panel-val" id="globalUserCount">—</span>
+      </div>
+      <div class="usage-panel-block">
+        <div class="usage-panel-subtitle">Biggest Storage Users</div>
+        <div class="usage-panel-list" id="topStorageUsers">—</div>
+      </div>
+      <div class="usage-panel-block">
+        <div class="usage-panel-subtitle">File Types</div>
+        <div class="usage-panel-list" id="fileTypeBreakdown">—</div>
+      </div>
+      <div class="usage-panel-block">
+        <div class="usage-panel-subtitle">Site Notice</div>
+        <label class="usage-toggle">
+          <input type="checkbox" id="noticeEnabled">
+          <span>enable maintenance/announcement banner</span>
+        </label>
+        <textarea class="usage-textarea" id="noticeText" rows="3" maxlength="500" placeholder="Write a maintenance notice or announcement..."></textarea>
+        <button class="usage-save-btn" id="saveNoticeBtn">SAVE NOTICE</button>
       </div>
     </div>
     <div class="toolbar">
