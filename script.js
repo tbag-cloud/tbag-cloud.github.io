@@ -364,7 +364,7 @@ async function uploadFile(todoId, rawFile) {
     };
     reader.readAsDataURL(file);
   } else {
-    if (file.size > MAX_SYNC_FILE) { toast('max 1GB per file', 'var(--accent2)'); return; }
+    if (file.size > MAX_SYNC_FILE) { toast('max 50MB per file', 'var(--accent2)'); return; }
     const ext = file.name.split('.').pop();
     const path = currentUser.id + '/' + todoId + '/' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.' + ext;
     dot('syncing');
@@ -568,7 +568,7 @@ function buildAttPanel(todoId, atts) {
       + (isImg && a.path ? '<img class="att-img" data-path="' + esc(a.path) + '" src="" alt="' + esc(a.name) + '" data-att="' + a.id + '">' : '');
   }).join('');
 
-  const lim = mode === 'guest' ? 'max 5MB, images compressed' : 'max 1GB, images compressed';
+  const lim = mode === 'guest' ? 'max 5MB, images compressed' : 'max 50MB per file, images compressed';
   return '<div class="att-panel open">'
     + '<div class="att-list">' + items + '</div>'
     + '<div class="att-upload-row">'
