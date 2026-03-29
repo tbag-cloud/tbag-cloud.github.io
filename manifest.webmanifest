@@ -1,10 +1,12 @@
 {
   "name": "TODO",
   "short_name": "TODO",
-  "description": "A synced todo app with attachments, guest mode, and admin tools.",
+  "description": "A synced todo app with attachments, guest mode, and admin tools made by the big themi.",
+  "id": "/",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#0a0a0c",
   "theme_color": "#0a0a0c",
   "icons": [
