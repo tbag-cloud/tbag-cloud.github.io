@@ -339,6 +339,7 @@ function updateStorageMeter() {
   bar.className = 'storage-bar visible';
 
   if (mode === 'guest') {
+    document.getElementById('btnClearAtts').style.display = 'none';
     let bytes = 0;
     try { bytes = (localStorage.getItem(LS_TODOS)||'').length + (localStorage.getItem(LS_ATTS)||'').length; } catch {}
     const pct = Math.min(100, (bytes / 5000000) * 100);
@@ -384,6 +385,9 @@ sb.auth.onAuthStateChange(async (event, session) => {
       av.src = session.user.user_metadata.avatar_url;
       av.style.display = 'inline-block'; ph.style.display = 'none';
     } else {
+      av.removeAttribute('src');
+      av.style.display = 'none';
+      ph.style.display = 'flex';
       ph.textContent = (session.user.email||'?')[0].toUpperCase();
     }
 
@@ -455,14 +459,19 @@ function saveGuest() {
 // ── LOAD SYNCED ───────────────────────────────────────────────────────────────
 async function loadSynced() {
   dot('syncing');
-  const { data: tData, error: tErr } = await sb.from('todos').select('*').order('created', { ascending: false });
-  const { data: aData } = await sb.from('attachments').select('*').order('created', { ascending: true });
+  const { data: tData, error: tErr } = await sb.from('todos').select('*').eq('user_id', currentUser.id);
+  const { data: aData, error: aErr } = await sb.from('attachments').select('*').eq('user_id', currentUser.id);
 
   if (tErr) { dot('err'); toast('load error: ' + tErr.message, 'var(--danger)'); return; }
+  if (aErr) { dot('err'); toast('attachments load error: ' + aErr.message, 'var(--danger)'); return; }
 
-  todos = (tData || []).map(normalize);
+  todos = (tData || [])
+    .map(normalize)
+    .sort((a, b) => new Date(b.created) - new Date(a.created));
   attMap = {};
-  (aData || []).forEach(a => {
+  (aData || [])
+    .sort((a, b) => new Date(a.created_at || a.created || 0) - new Date(b.created_at || b.created || 0))
+    .forEach(a => {
     (attMap[a.todo_id] = attMap[a.todo_id] || []).push({
       id: a.id, name: a.name, size: a.size, mime: a.mime_type, path: a.path, todoId: a.todo_id
     });
@@ -494,9 +503,16 @@ async function toggleDone(id) {
   else {
     render();
     dot('syncing');
-    const { error } = await sb.from('todos').update({ done: t.done, updated: new Date().toISOString() }).eq('id', id);
+    const { error } = await sb.from('todos').update({ done: t.done }).eq('id', id).eq('user_id', currentUser.id);
     if (error) { t.done = !t.done; dot('err'); render(); } else dot('ok');
   }
+}
+
+async function removeStoragePaths(paths) {
+  const clean = [...new Set(paths.filter(Boolean))];
+  if (!clean.length) return;
+  const { error } = await sb.storage.from('attachments').remove(clean);
+  if (error) throw error;
 }
 
 async function deleteTodo(id) {
@@ -505,9 +521,15 @@ async function deleteTodo(id) {
     todos = todos.filter(t => t.id !== id); delete attMap[id]; saveGuest(); render();
   } else {
     dot('syncing');
-    for (const a of (attMap[id] || [])) if (a.path) await sb.storage.from('attachments').remove([a.path]);
-    const { error } = await sb.from('todos').delete().eq('id', id);
-    if (error) { dot('err'); toast('delete failed', 'var(--danger)'); return; }
+    try {
+      await removeStoragePaths((attMap[id] || []).map(a => a.path));
+      const { error: attErr } = await sb.from('attachments').delete().eq('todo_id', id).eq('user_id', currentUser.id);
+      if (attErr) throw attErr;
+      const { error } = await sb.from('todos').delete().eq('id', id).eq('user_id', currentUser.id);
+      if (error) throw error;
+    } catch (error) {
+      dot('err'); toast('delete failed: ' + error.message, 'var(--danger)'); return;
+    }
     await loadSynced();
   }
 }
@@ -520,7 +542,7 @@ async function commitEdit(id, text, desc) {
     editingId = null; saveGuest(); render();
   } else {
     dot('syncing');
-    const { error } = await sb.from('todos').update({ text, description: desc.trim(), updated: new Date().toISOString() }).eq('id', id);
+    const { error } = await sb.from('todos').update({ text, description: desc.trim() }).eq('id', id).eq('user_id', currentUser.id);
     if (error) { dot('err'); toast('save failed', 'var(--danger)'); return; }
     editingId = null; await loadSynced();
   }
@@ -532,8 +554,15 @@ async function clearDone() {
     todos = todos.filter(t => !t.done); ids.forEach(id => delete attMap[id]); saveGuest(); render(); toast('completed cleared');
   } else {
     dot('syncing');
-    for (const id of ids) for (const a of (attMap[id]||[])) if (a.path) await sb.storage.from('attachments').remove([a.path]);
-    await sb.from('todos').delete().in('id', ids);
+    try {
+      await removeStoragePaths(ids.flatMap(id => (attMap[id] || []).map(a => a.path)));
+      const { error: attErr } = await sb.from('attachments').delete().in('todo_id', ids).eq('user_id', currentUser.id);
+      if (attErr) throw attErr;
+      const { error } = await sb.from('todos').delete().in('id', ids).eq('user_id', currentUser.id);
+      if (error) throw error;
+    } catch (error) {
+      dot('err'); toast('clear failed: ' + error.message, 'var(--danger)'); return;
+    }
     await loadSynced(); toast('completed cleared');
   }
 }
@@ -547,9 +576,12 @@ async function clearDoneAttachments() {
     affected.forEach(id => delete attMap[id]); saveGuest(); render(); toast('cleared');
   } else {
     dot('syncing');
-    for (const id of affected) {
-      for (const a of (attMap[id]||[])) if (a.path) await sb.storage.from('attachments').remove([a.path]);
-      await sb.from('attachments').delete().eq('todo_id', id);
+    try {
+      await removeStoragePaths(affected.flatMap(id => (attMap[id] || []).map(a => a.path)));
+      const { error } = await sb.from('attachments').delete().in('todo_id', affected).eq('user_id', currentUser.id);
+      if (error) throw error;
+    } catch (error) {
+      dot('err'); toast('clear failed: ' + error.message, 'var(--danger)'); return;
     }
     await loadSynced(); toast('cleared attachments from completed tasks');
   }
@@ -578,7 +610,10 @@ async function uploadFile(todoId, rawFile) {
     const { error: dbErr } = await sb.from('attachments').insert({
       todo_id: todoId, user_id: currentUser.id, name: file.name, size: file.size, mime_type: file.type, path
     });
-    if (dbErr) { dot('err'); toast('record failed', 'var(--danger)'); return; }
+    if (dbErr) {
+      await removeStoragePaths([path]).catch(() => {});
+      dot('err'); toast('record failed: ' + dbErr.message, 'var(--danger)'); return;
+    }
     dot('ok'); toast('uploaded ' + file.name); await loadSynced();
   }
 }
@@ -590,8 +625,13 @@ async function deleteAttachment(attId, todoId) {
   } else {
     const a = findAtt(attId); if (!a) return;
     dot('syncing');
-    if (a.path) await sb.storage.from('attachments').remove([a.path]);
-    await sb.from('attachments').delete().eq('id', attId);
+    try {
+      await removeStoragePaths([a.path]);
+      const { error } = await sb.from('attachments').delete().eq('id', attId).eq('user_id', currentUser.id);
+      if (error) throw error;
+    } catch (error) {
+      dot('err'); toast('remove failed: ' + error.message, 'var(--danger)'); return;
+    }
     await loadSynced(); toast('removed');
   }
 }
@@ -638,6 +678,37 @@ function findAtt(id) {
 async function getSignedUrl(path) {
   const { data } = await sb.storage.from('attachments').createSignedUrl(path, 300);
   return data?.signedUrl || null;
+}
+
+async function importSyncedTodos(importedTodos, importedAtts, merge) {
+  const skippedAttachments = Object.values(importedAtts).reduce((count, atts) => count + atts.length, 0);
+
+  if (!merge) {
+    await removeStoragePaths(Object.values(attMap).flat().map(a => a.path));
+    const { error: attErr } = await sb.from('attachments').delete().eq('user_id', currentUser.id);
+    if (attErr) throw attErr;
+    const { error: todoErr } = await sb.from('todos').delete().eq('user_id', currentUser.id);
+    if (todoErr) throw todoErr;
+  }
+
+  for (const todo of importedTodos) {
+    const normalized = normalize(todo);
+    const payload = {
+      user_id: currentUser.id,
+      text: normalized.text,
+      description: normalized.desc,
+      priority: normalized.priority,
+      done: normalized.done
+    };
+    if (merge && todos.some(t => t.id === normalized.id)) continue;
+
+    const { error } = await sb.from('todos').insert(payload);
+    if (error) throw error;
+  }
+
+  await loadSynced();
+  toast((merge ? 'merged ' : 'imported ') + importedTodos.length + ' tasks'
+    + (skippedAttachments ? ' · attachments skipped in sync mode' : ''));
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
@@ -858,7 +929,7 @@ document.getElementById('importFile').addEventListener('change', async e => {
       const data = JSON.parse(ev.target.result);
       const importedTodos = Array.isArray(data) ? data : (data.todos || []);
       const importedAtts = data.attachments || {};
-      if (merge) {
+      if (mode === 'guest' && merge) {
         const ex = new Set(todos.map(t => t.id));
         todos = [...importedTodos.filter(t => !ex.has(t.id)), ...todos];
         for (const [tid, atts] of Object.entries(importedAtts)) {
@@ -867,12 +938,12 @@ document.getElementById('importFile').addEventListener('change', async e => {
           attMap[tid] = [...attMap[tid], ...atts.filter(a => !exA.has(a.id))];
         }
         toast('merged ' + importedTodos.length + ' tasks');
-      } else {
+      } else if (mode === 'guest') {
         todos = [...importedTodos]; attMap = { ...importedAtts };
         toast('replaced with ' + todos.length + ' tasks');
       }
       if (mode === 'guest') { saveGuest(); render(); }
-      else { await loadSynced(); }
+      else { await importSyncedTodos(importedTodos, importedAtts, merge); }
     } catch(err) { toast('import failed: ' + err.message, 'var(--danger)'); }
     e.target.value = '';
   };
