@@ -279,33 +279,44 @@ async function init(){
 
   try {
     sb = window.supabase.createClient(SUPA_URL, SUPA_KEY, {
-      auth: { detectSessionInUrl: true, persistSession: true }
+      auth: { detectSessionInUrl: false, persistSession: true }
     });
-  } catch(e) {
+  } catch(e) { return; }
+
+  // Manually parse the hash — more reliable than detectSessionInUrl
+  const hash = window.location.hash;
+  if(hash && hash.includes('access_token')){
+    const params = new URLSearchParams(hash.replace(/^#+/, ''));
+    const access_token = params.get('access_token');
+    const refresh_token = params.get('refresh_token');
+    if(access_token && refresh_token){
+      const { data, error } = await sb.auth.setSession({ access_token, refresh_token });
+      console.log('[init] setSession from URL:', data?.session?.user?.email, error);
+      history.replaceState(null, '', window.location.pathname);
+      if(data?.session) { await enterSyncedMode(data.session.user); }
+    }
     return;
   }
 
-  // Register listener FIRST before anything else — this catches the OAuth
-  // redirect token AND handles sign out, so it must always be active
+  // No hash — check for existing stored session
+  const { data: { session }, error } = await sb.auth.getSession();
+  console.log('[init] stored session:', session?.user?.email, error);
+  if(session){
+    // Refresh the token to make sure it's valid
+    const { data: refreshed } = await sb.auth.refreshSession();
+    console.log('[init] refreshed:', refreshed?.session?.user?.email);
+    if(refreshed?.session) await enterSyncedMode(refreshed.session.user);
+    else await enterSyncedMode(session.user);
+    return;
+  }
+
+  // No session — listen for sign in
   sb.auth.onAuthStateChange(async(event, session)=>{
     console.log('[auth]', event, session?.user?.email);
-    if(event === 'SIGNED_IN' && session){
-      history.replaceState(null, '', window.location.pathname);
-      if(!currentUser || currentUser.id !== session.user.id){
-        await enterSyncedMode(session.user);
-      }
-    }
-    if(event === 'SIGNED_OUT'){
-      console.log('[auth] signing out, calling leaveSyncedMode');
-      leaveSyncedMode();
-    }
-    if(event === 'INITIAL_SESSION' && session){
-      console.log('[auth] initial session:', session?.user?.email);
-      history.replaceState(null, '', window.location.pathname);
-      // Small wait to ensure token is fully ready in the client
-      await new Promise(r => setTimeout(r, 300));
+    if(event === 'SIGNED_IN' && session && !currentUser){
       await enterSyncedMode(session.user);
     }
+    if(event === 'SIGNED_OUT'){ leaveSyncedMode(); }
   });
 }
 
@@ -375,9 +386,10 @@ async function enterSyncedMode(user){
     ph.textContent=(user.email||'?')[0].toUpperCase();
     ph.style.display='flex';
   }
-  // Make sure the client has the current session before querying
-  const { data: { session } } = await sb.auth.getSession();
-  console.log('[enterSyncedMode] session valid:', !!session?.access_token);
+  // Register sign out listener now that we're logged in
+  sb.auth.onAuthStateChange((event)=>{
+    if(event === 'SIGNED_OUT') leaveSyncedMode();
+  });
   await loadSynced();
   subscribeRealtime();
 }
