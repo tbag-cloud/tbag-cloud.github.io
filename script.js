@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIG
 // ─────────────────────────────────────────────────────────────────────────────
-const SUPA_URL = 'https://hxkjwebubmdqjzwmnvrh.supabase.co/auth/v1/callback';
+const SUPA_URL = 'https://hxkjwebubmdqjzwmnvrh.supabase.co';
 const SUPA_KEY = 'sb_publishable_iZkIPeb7P6Eb8RCXC1hNOQ_GhIUlnj0';
 
 const LS_TODOS = 'todo_v3_todos';
@@ -844,7 +844,7 @@ el.btnGoogle?.addEventListener('click', async () => {
   const { error } = await sb.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: 'https://tbag-cloud.github.io/', // <- your app landing page
+      redirectTo: 'https://tbag-cloud.github.io', // <- your app landing page
     },
   });
 
