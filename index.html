@@ -283,41 +283,29 @@ async function init(){
     });
   } catch(e) { return; }
 
-  // Manually parse the hash — more reliable than detectSessionInUrl
+  // ALWAYS register listener first — handles SIGNED_IN, INITIAL_SESSION, SIGNED_OUT
+  sb.auth.onAuthStateChange(async(event, session)=>{
+    console.log('[auth]', event, session?.user?.email);
+    if((event==='SIGNED_IN' || event==='INITIAL_SESSION') && session && !currentUser){
+      history.replaceState(null, '', window.location.pathname);
+      await enterSyncedMode(session.user);
+    }
+    if(event==='SIGNED_OUT'){ leaveSyncedMode(); }
+  });
+
+  // Manually handle OAuth hash redirect
   const hash = window.location.hash;
   if(hash && hash.includes('access_token')){
     const params = new URLSearchParams(hash.replace(/^#+/, ''));
     const access_token = params.get('access_token');
     const refresh_token = params.get('refresh_token');
     if(access_token && refresh_token){
-      const { data, error } = await sb.auth.setSession({ access_token, refresh_token });
-      console.log('[init] setSession from URL:', data?.session?.user?.email, error);
-      history.replaceState(null, '', window.location.pathname);
-      if(data?.session) { await enterSyncedMode(data.session.user); }
+      console.log('[init] setting session from URL hash');
+      await sb.auth.setSession({ access_token, refresh_token });
+      // onAuthStateChange SIGNED_IN fires automatically
     }
-    return;
   }
-
-  // No hash — check for existing stored session
-  const { data: { session }, error } = await sb.auth.getSession();
-  console.log('[init] stored session:', session?.user?.email, error);
-  if(session){
-    // Refresh the token to make sure it's valid
-    const { data: refreshed } = await sb.auth.refreshSession();
-    console.log('[init] refreshed:', refreshed?.session?.user?.email);
-    if(refreshed?.session) await enterSyncedMode(refreshed.session.user);
-    else await enterSyncedMode(session.user);
-    return;
-  }
-
-  // No session — listen for sign in
-  sb.auth.onAuthStateChange(async(event, session)=>{
-    console.log('[auth]', event, session?.user?.email);
-    if(event === 'SIGNED_IN' && session && !currentUser){
-      await enterSyncedMode(session.user);
-    }
-    if(event === 'SIGNED_OUT'){ leaveSyncedMode(); }
-  });
+  // (if no hash, onAuthStateChange INITIAL_SESSION fires automatically with stored session)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -386,10 +374,6 @@ async function enterSyncedMode(user){
     ph.textContent=(user.email||'?')[0].toUpperCase();
     ph.style.display='flex';
   }
-  // Register sign out listener now that we're logged in
-  sb.auth.onAuthStateChange((event)=>{
-    if(event === 'SIGNED_OUT') leaveSyncedMode();
-  });
   await loadSynced();
   subscribeRealtime();
 }
@@ -424,9 +408,9 @@ async function loadSynced(){
 function subscribeRealtime(){
   if(realtimeCh) sb.removeChannel(realtimeCh);
   realtimeCh=sb.channel('rt-todos')
-    .on('postgres_changes',{event:'*',schema:'public',table:'todos'},loadSynced)
-    .on('postgres_changes',{event:'*',schema:'public',table:'attachments'},loadSynced)
-    .subscribe();
+    .on('postgres_changes',{event:'*',schema:'public',table:'todos'}, ()=>{ console.log('[rt] todos changed'); loadSynced(); })
+    .on('postgres_changes',{event:'*',schema:'public',table:'attachments'}, ()=>{ console.log('[rt] attachments changed'); loadSynced(); })
+    .subscribe((status)=>{ console.log('[rt] status:', status); });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
