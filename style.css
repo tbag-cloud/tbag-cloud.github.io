@@ -54,6 +54,9 @@ h1 span{color:var(--accent);}
 .app-menu-item{background:none;border:1px solid transparent;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:0.68rem;padding:10px 12px;cursor:pointer;text-align:left;letter-spacing:0.08em;transition:all 0.15s;}
 .app-menu-item:hover,.app-menu-item.active{border-color:var(--accent);color:var(--text);background:rgba(124,111,255,0.08);}
 .app-page{display:block;}
+.admin-page{animation:fadeUp 0.22s ease;}
+.admin-hero{margin-bottom:18px;}
+.admin-panel-page{margin-top:0;}
 
 /* STORAGE METER */
 .storage-bar{margin-top:8px;display:none;}
