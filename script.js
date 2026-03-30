@@ -28,6 +28,7 @@ let watchlistCategories = [];
 let watchlistExpanded = new Set();
 let watchlistComposerOpen = false;
 let watchlistComposerMode = 'add';
+let watchlistSyncAvailable = true;
 
 const LS_TODOS = 'todo_v3_todos';
 const LS_ATTS  = 'todo_v3_atts';
@@ -260,7 +261,8 @@ function renderWatchlistDeleteTargets(categoryKey) {
   ).join('');
 }
 
-function loadWatchlist() {
+function loadGuestWatchlist() {
+  loadWatchlistCategories();
   try {
     const parsed = JSON.parse(localStorage.getItem(LS_WATCHLIST) || '{}');
     watchlistData = Object.fromEntries(
@@ -272,10 +274,164 @@ function loadWatchlist() {
   ensureWatchlistDataShape();
 }
 
-function saveWatchlist() {
+function saveGuestWatchlist() {
+  saveWatchlistCategories();
   ensureWatchlistDataShape();
   localStorage.setItem(LS_WATCHLIST, JSON.stringify(watchlistData));
   renderWatchlist();
+}
+
+function serializeWatchlistCategoryRows() {
+  return watchlistCategories.map((category, index) => ({
+    user_id: currentUser.id,
+    category_key: category.key,
+    label: category.label,
+    kicker: category.kicker || 'CUSTOM',
+    sort_order: index
+  }));
+}
+
+function serializeWatchlistItemRows() {
+  return Object.entries(watchlistData).flatMap(([categoryKey, items]) =>
+    (items || []).map(item => ({
+      user_id: currentUser.id,
+      id: item.id,
+      category_key: categoryKey,
+      title: item.title || '',
+      url: item.url || '',
+      status: item.status || 'Not Started',
+      priority: item.priority || 'medium',
+      track_mode: item.trackMode || null,
+      season: item.season ?? null,
+      episode: item.episode ?? null,
+      progress: item.progress ?? null
+    }))
+  );
+}
+
+function hydrateWatchlistCategories(rows) {
+  return rows
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+    .map(row => ({
+      key: row.category_key,
+      label: row.label,
+      kicker: row.kicker || 'CUSTOM'
+    }));
+}
+
+function hydrateWatchlistItems(rows) {
+  const next = {};
+  rows.forEach(row => {
+    (next[row.category_key] = next[row.category_key] || []).push({
+      id: row.id,
+      title: row.title || '',
+      url: row.url || '',
+      status: row.status || 'Not Started',
+      priority: row.priority || 'medium',
+      ...(row.track_mode ? { trackMode: row.track_mode } : {}),
+      ...(row.season !== null && row.season !== undefined ? { season: row.season } : {}),
+      ...(row.episode !== null && row.episode !== undefined ? { episode: row.episode } : {}),
+      ...(row.progress !== null && row.progress !== undefined ? { progress: row.progress } : {})
+    });
+  });
+  return next;
+}
+
+function hasWatchlistContent() {
+  return watchlistCategories.some(category => !isDefaultWatchlistCategory(category.key))
+    || Object.values(watchlistData).some(items => Array.isArray(items) && items.length);
+}
+
+function isMissingWatchlistTable(error) {
+  return error && (error.code === '42P01' || /watchlist_/i.test(error.message || ''));
+}
+
+async function ensureSyncedWatchlistDefaults() {
+  const rows = serializeWatchlistCategoryRows();
+  if (!rows.length) return;
+  const { error } = await sb.from('watchlist_categories').upsert(rows, { onConflict: 'user_id,category_key' });
+  if (error) throw error;
+}
+
+async function loadSyncedWatchlist() {
+  if (!currentUser) return;
+  const { data: categoryRows, error: categoryErr } = await sb
+    .from('watchlist_categories')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .order('sort_order');
+  if (categoryErr) throw categoryErr;
+
+  if (!categoryRows?.length) {
+    loadGuestWatchlist();
+    if (hasWatchlistContent()) {
+      await saveSyncedWatchlistState();
+    } else {
+      watchlistCategories = defaultWatchlistCategories();
+      watchlistData = emptyWatchlistState();
+      await ensureSyncedWatchlistDefaults();
+    }
+  } else {
+    watchlistCategories = hydrateWatchlistCategories(categoryRows);
+  }
+
+  const { data: itemRows, error: itemErr } = await sb
+    .from('watchlist_items')
+    .select('*')
+    .eq('user_id', currentUser.id);
+  if (itemErr) throw itemErr;
+
+  watchlistData = hydrateWatchlistItems(itemRows || []);
+  ensureWatchlistDataShape();
+  renderWatchlistCategoryOptions();
+  renderWatchlist();
+}
+
+async function saveSyncedWatchlistState() {
+  if (!currentUser || !watchlistSyncAvailable) return;
+  ensureWatchlistDataShape();
+
+  const categoryRows = serializeWatchlistCategoryRows();
+  const itemRows = serializeWatchlistItemRows();
+  dot('syncing');
+
+  const { error: clearItemsErr } = await sb.from('watchlist_items').delete().eq('user_id', currentUser.id);
+  if (clearItemsErr) throw clearItemsErr;
+
+  const { error: clearCategoriesErr } = await sb.from('watchlist_categories').delete().eq('user_id', currentUser.id);
+  if (clearCategoriesErr) throw clearCategoriesErr;
+
+  if (categoryRows.length) {
+    const { error } = await sb.from('watchlist_categories').insert(categoryRows);
+    if (error) throw error;
+  }
+
+  if (itemRows.length) {
+    const { error } = await sb.from('watchlist_items').insert(itemRows);
+    if (error) throw error;
+  }
+
+  dot('ok');
+}
+
+async function saveWatchlistState() {
+  if (mode === 'guest' || !watchlistSyncAvailable) {
+    saveGuestWatchlist();
+    return;
+  }
+  try {
+    await saveSyncedWatchlistState();
+    renderWatchlist();
+  } catch (error) {
+    dot('err');
+    if (isMissingWatchlistTable(error)) {
+      watchlistSyncAvailable = false;
+      toast('watchlist sync unavailable - run watchlist SQL', 'var(--danger)');
+      saveGuestWatchlist();
+      return;
+    }
+    toast('watchlist sync failed: ' + error.message, 'var(--danger)');
+  }
 }
 
 function updateWatchlistComposerFields() {
@@ -286,6 +442,8 @@ function updateWatchlistComposerFields() {
 }
 
 function openCategoryComposer() {
+  closeDeleteCategoryComposer();
+  closeWatchlistComposer();
   document.getElementById('watchlistCategoryComposer').style.display = 'block';
   document.getElementById('watchlistCategoryNameInput').value = '';
   document.getElementById('watchlistCategoryKickerInput').value = 'CUSTOM';
@@ -301,6 +459,8 @@ function openDeleteCategoryComposer(categoryKey) {
     toast('default categories stay locked', 'var(--danger)');
     return;
   }
+  closeCategoryComposer();
+  closeWatchlistComposer();
   const category = watchlistCategories.find(entry => entry.key === categoryKey);
   if (!category) return;
   const count = (watchlistData[categoryKey] || []).length;
@@ -323,6 +483,8 @@ function closeDeleteCategoryComposer() {
 }
 
 function openWatchlistComposer(category) {
+  closeCategoryComposer();
+  closeDeleteCategoryComposer();
   const composer = document.getElementById('watchlistComposer');
   composer.style.display = 'block';
   watchlistComposerOpen = true;
@@ -466,7 +628,7 @@ function renderWatchlist() {
   updateWatchlistStats();
 }
 
-function removeWatchlistCategory(categoryKey) {
+async function removeWatchlistCategory(categoryKey) {
   const count = (watchlistData[categoryKey] || []).length;
   const moveMode = count && document.getElementById('watchlistDeleteModeMove').checked;
   const targetKey = document.getElementById('watchlistDeleteTarget').value;
@@ -479,10 +641,9 @@ function removeWatchlistCategory(categoryKey) {
   }
   delete watchlistData[categoryKey];
   watchlistCategories = watchlistCategories.filter(entry => entry.key !== categoryKey);
-  saveWatchlistCategories();
-  saveWatchlist();
   renderWatchlistCategoryOptions();
   closeDeleteCategoryComposer();
+  await saveWatchlistState();
   toast('category deleted');
 }
 
@@ -490,38 +651,38 @@ function getWatchlistItem(category, id) {
   return (watchlistData[category] || []).find(item => item.id === id);
 }
 
-function cycleWatchlistStatus(category, id) {
+async function cycleWatchlistStatus(category, id) {
   const item = getWatchlistItem(category, id);
   if (!item) return;
   const states = ['Not Started', 'In Progress'];
   const current = states.indexOf(item.status || 'Not Started');
   item.status = states[(current + 1) % states.length];
-  saveWatchlist();
+  await saveWatchlistState();
   toast('watchlist updated');
 }
 
-function finishWatchlistItem(category, id) {
+async function finishWatchlistItem(category, id) {
   const item = getWatchlistItem(category, id);
   if (!item) return;
   item.status = category === 'movies' ? 'Watched' : 'Finished';
-  saveWatchlist();
+  await saveWatchlistState();
   toast(category === 'movies' ? 'marked as watched' : 'marked as finished');
 }
 
-function stepWatchlist(category, id, field, step) {
+async function stepWatchlist(category, id, field, step) {
   const item = getWatchlistItem(category, id);
   if (!item) return;
   item[field] = Math.max(0, (item[field] || (field === 'season' || field === 'episode' ? 1 : 0)) + step);
   if (field === 'season' || field === 'episode') item[field] = Math.max(1, item[field]);
-  saveWatchlist();
+  await saveWatchlistState();
 }
 
-function deleteWatchlistItem(category, id) {
+async function deleteWatchlistItem(category, id) {
   const item = getWatchlistItem(category, id);
   if (!item) return;
   if (!confirm('Delete "' + item.title + '" from your watchlist?')) return;
   watchlistData[category] = (watchlistData[category] || []).filter(entry => entry.id !== id);
-  saveWatchlist();
+  await saveWatchlistState();
   toast('watchlist item deleted', 'var(--accent2)');
 }
 
@@ -552,7 +713,7 @@ function quickAddWatchlistItem() {
   openCategoryComposer();
 }
 
-function saveWatchlistCategory() {
+async function saveWatchlistCategory() {
   const raw = document.getElementById('watchlistCategoryNameInput').value.trim();
   if (!raw) {
     toast('category name needed', 'var(--danger)');
@@ -569,9 +730,8 @@ function saveWatchlistCategory() {
   const kickerRaw = document.getElementById('watchlistCategoryKickerInput').value.trim();
   watchlistCategories.push({ key, label, kicker: (kickerRaw || 'CUSTOM').toUpperCase().slice(0, 20) });
   watchlistData[key] = [];
-  saveWatchlistCategories();
   renderWatchlistCategoryOptions();
-  renderWatchlist();
+  await saveWatchlistState();
   closeCategoryComposer();
   toast('category added');
 }
@@ -595,7 +755,7 @@ function exportWatchlist() {
 
 function importWatchlistFile(file) {
   const reader = new FileReader();
-  reader.onload = event => {
+  reader.onload = async event => {
     try {
       const parsed = JSON.parse(event.target.result);
       const nextCategories = Array.isArray(parsed.categories) ? parsed.categories.filter(category => category?.key && category?.label) : null;
@@ -606,12 +766,11 @@ function importWatchlistFile(file) {
         Object.entries(nextItems).map(([key, value]) => [key, Array.isArray(value) ? value : []])
       );
       ensureWatchlistDataShape();
-      saveWatchlistCategories();
-      saveWatchlist();
       renderWatchlistCategoryOptions();
       closeCategoryComposer();
       closeDeleteCategoryComposer();
       closeWatchlistComposer();
+      await saveWatchlistState();
       toast('watchlist imported');
     } catch (error) {
       toast('watchlist import failed', 'var(--danger)');
@@ -620,7 +779,7 @@ function importWatchlistFile(file) {
   reader.readAsText(file);
 }
 
-function saveWatchlistComposer() {
+async function saveWatchlistComposer() {
   const category = document.getElementById('watchlistCategory').value;
   const title = document.getElementById('watchlistTitleInput').value.trim();
   if (!title) {
@@ -633,10 +792,11 @@ function saveWatchlistComposer() {
   const sourceCategory = editId ? originalCategory : category;
   const existingIndex = editId ? (watchlistData[sourceCategory] || []).findIndex(item => item.id === editId) : -1;
   const item = existingIndex >= 0 ? watchlistData[sourceCategory][existingIndex] : { id: uid() };
+  const existingStatus = existingIndex >= 0 ? (item.status || 'Not Started') : 'Not Started';
 
   item.title = title;
   item.url = document.getElementById('watchlistUrlInput').value.trim();
-  item.status = 'Not Started';
+  item.status = existingStatus;
   item.priority = document.getElementById('watchlistPriorityInput').value;
   delete item.note;
   delete item.trackMode;
@@ -659,7 +819,7 @@ function saveWatchlistComposer() {
   } else if (existingIndex < 0) {
     watchlistData[category].unshift(item);
   }
-  saveWatchlist();
+  await saveWatchlistState();
   closeWatchlistComposer();
   toast(existingIndex >= 0 ? 'watchlist item updated' : 'added to watchlist');
 }
@@ -807,6 +967,7 @@ document.getElementById('btnUpgrade').addEventListener('click', () => {
 // ── GUEST MODE ────────────────────────────────────────────────────────────────
 function enterGuestMode() {
   mode = 'guest'; currentUser = null;
+  watchlistSyncAvailable = true;
   document.getElementById('authScreen').style.display = 'none';
   document.getElementById('appScreen').style.display = 'block';
   document.getElementById('modeBadge').textContent = 'GUEST';
@@ -818,6 +979,9 @@ function enterGuestMode() {
   dot('');
   try { todos = JSON.parse(localStorage.getItem(LS_TODOS) || '[]'); } catch { todos = []; }
   try { attMap = JSON.parse(localStorage.getItem(LS_ATTS) || '{}'); } catch { attMap = {}; }
+  loadGuestWatchlist();
+  renderWatchlistCategoryOptions();
+  renderWatchlist();
   globalUsage = null;
   render(); updateStorageMeter();
 }
@@ -850,6 +1014,21 @@ async function loadSynced() {
       id: a.id, name: a.name, size: a.size, mime: a.mime_type, path: a.path, todoId: a.todo_id
     });
   });
+
+  try {
+    watchlistSyncAvailable = true;
+    await loadSyncedWatchlist();
+  } catch (error) {
+    if (isMissingWatchlistTable(error)) {
+      watchlistSyncAvailable = false;
+      loadGuestWatchlist();
+      renderWatchlistCategoryOptions();
+      renderWatchlist();
+      toast('watchlist sync unavailable - run watchlist SQL', 'var(--danger)');
+    } else {
+      throw error;
+    }
+  }
 
   dot('ok'); render(); updateStorageMeter();
   await loadGlobalUsage();
@@ -1312,14 +1491,18 @@ document.getElementById('watchlistImportFile').addEventListener('change', e => {
   e.target.value = '';
 });
 document.getElementById('watchlistCategoryComposerClose').addEventListener('click', closeCategoryComposer);
-document.getElementById('watchlistCategoryComposerSave').addEventListener('click', saveWatchlistCategory);
+document.getElementById('watchlistCategoryComposerSave').addEventListener('click', async () => {
+  await saveWatchlistCategory();
+});
 document.getElementById('watchlistCategoryDeleteClose').addEventListener('click', closeDeleteCategoryComposer);
-document.getElementById('watchlistCategoryDeleteConfirm').addEventListener('click', () => {
+document.getElementById('watchlistCategoryDeleteConfirm').addEventListener('click', async () => {
   const key = document.getElementById('watchlistDeleteCategoryKey').value;
-  if (key) removeWatchlistCategory(key);
+  if (key) await removeWatchlistCategory(key);
 });
 document.getElementById('watchlistComposerClose').addEventListener('click', closeWatchlistComposer);
-document.getElementById('watchlistComposerSave').addEventListener('click', saveWatchlistComposer);
+document.getElementById('watchlistComposerSave').addEventListener('click', async () => {
+  await saveWatchlistComposer();
+});
 document.getElementById('watchlistCategory').addEventListener('change', () => {
   const key = document.getElementById('watchlistCategory').value;
   const category = watchlistCategories.find(entry => entry.key === key);
@@ -1333,7 +1516,7 @@ document.getElementById('watchlistDeleteModeMove').addEventListener('change', ()
 document.getElementById('watchlistDeleteModeDelete').addEventListener('change', () => {
   document.getElementById('watchlistDeleteMoveField').style.display = document.getElementById('watchlistDeleteModeMove').checked ? 'flex' : 'none';
 });
-document.getElementById('watchlistGroups').addEventListener('click', e => {
+document.getElementById('watchlistGroups').addEventListener('click', async e => {
   const addBtn = e.target.closest('.watchlist-add-btn');
   if (addBtn) {
     addWatchlistItem(addBtn.dataset.cat);
@@ -1347,13 +1530,13 @@ document.getElementById('watchlistGroups').addEventListener('click', e => {
   const btn = e.target.closest('[data-wl-action]');
   if (!btn) return;
   const { wlAction: action, wlCat: category, wlId: id, step } = btn.dataset;
-  if (action === 'delete') deleteWatchlistItem(category, id);
+  if (action === 'delete') await deleteWatchlistItem(category, id);
   else if (action === 'edit') editWatchlistItem(category, id);
-  else if (action === 'cycle') cycleWatchlistStatus(category, id);
-  else if (action === 'finish') finishWatchlistItem(category, id);
-  else if (action === 'step') stepWatchlist(category, id, 'progress', Number(step || 0));
-  else if (action === 'season') stepWatchlist(category, id, 'season', Number(step || 0));
-  else if (action === 'episode') stepWatchlist(category, id, 'episode', Number(step || 0));
+  else if (action === 'cycle') await cycleWatchlistStatus(category, id);
+  else if (action === 'finish') await finishWatchlistItem(category, id);
+  else if (action === 'step') await stepWatchlist(category, id, 'progress', Number(step || 0));
+  else if (action === 'season') await stepWatchlist(category, id, 'season', Number(step || 0));
+  else if (action === 'episode') await stepWatchlist(category, id, 'episode', Number(step || 0));
   else if (action === 'toggle-progress') {
     watchlistExpanded.has(id) ? watchlistExpanded.delete(id) : watchlistExpanded.add(id);
     renderWatchlist();
@@ -1410,8 +1593,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-loadWatchlistCategories();
+loadGuestWatchlist();
 renderWatchlistCategoryOptions();
-loadWatchlist();
 renderWatchlist();
 setPage('todo');
