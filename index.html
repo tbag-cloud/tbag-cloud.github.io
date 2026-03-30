@@ -46,6 +46,7 @@
         <div class="app-menu" id="appMenu" style="display:none">
           <button class="app-menu-item active" id="menuPageTodo" data-page="todo" type="button">TODO</button>
           <button class="app-menu-item" id="menuPageWatchlist" data-page="watchlist" type="button">WATCHLIST</button>
+          <button class="app-menu-item" id="menuPageAdmin" data-page="admin" type="button" style="display:none">ADMIN</button>
         </div>
       </div>
       <div class="user-area">
@@ -64,57 +65,6 @@
     <div class="storage-bar" id="dbStorageBar">
       <div class="storage-label" id="dbStorageLabel">—</div>
       <div class="storage-track"><div class="storage-fill" id="dbStorageFill" style="width:0%"></div></div>
-    </div>
-    <div class="usage-panel admin-panel" id="globalUsagePanel" style="display:none">
-      <button class="admin-panel-toggle" id="adminPanelToggle" type="button">
-        <span>ADMIN PANEL</span>
-        <span class="admin-panel-arrow" id="adminPanelArrow">▶</span>
-      </button>
-      <div class="admin-panel-body" id="adminPanelBody" style="display:none">
-        <div class="usage-panel-row">
-          <span class="usage-panel-key">attachment storage</span>
-          <span class="usage-panel-val" id="globalAttachmentBytes">—</span>
-        </div>
-        <div class="usage-panel-row">
-          <span class="usage-panel-key">total todos</span>
-          <span class="usage-panel-val" id="globalTodoCount">—</span>
-        </div>
-        <div class="usage-panel-row">
-          <span class="usage-panel-key">total attachments</span>
-          <span class="usage-panel-val" id="globalAttachmentCount">—</span>
-        </div>
-        <div class="usage-panel-row">
-          <span class="usage-panel-key">total users</span>
-          <span class="usage-panel-val" id="globalUserCount">—</span>
-        </div>
-        <div class="usage-panel-block">
-          <div class="usage-panel-subtitle">Biggest Storage Users</div>
-          <div class="usage-panel-list" id="topStorageUsers">—</div>
-        </div>
-        <div class="usage-panel-block">
-          <div class="usage-panel-subtitle">File Types</div>
-          <div class="usage-panel-list" id="fileTypeBreakdown">—</div>
-        </div>
-        <div class="usage-panel-block">
-          <div class="usage-panel-subtitle">Site Notice</div>
-          <label class="usage-toggle">
-            <input type="checkbox" id="noticeEnabled">
-            <span>enable maintenance/announcement banner</span>
-          </label>
-          <div class="notice-mode-row">
-            <label class="usage-toggle">
-              <input type="radio" name="noticeMode" id="noticeModeAnnouncement" value="announcement" checked>
-              <span>announcement</span>
-            </label>
-            <label class="usage-toggle">
-              <input type="radio" name="noticeMode" id="noticeModeMaintenance" value="maintenance">
-              <span>maintenance</span>
-            </label>
-          </div>
-          <textarea class="usage-textarea" id="noticeText" rows="3" maxlength="500" placeholder="Write a maintenance notice or announcement..."></textarea>
-          <button class="usage-save-btn" id="saveNoticeBtn">SAVE NOTICE</button>
-        </div>
-      </div>
     </div>
     <div class="toolbar" id="todoToolbar">
       <button class="filter-btn active" data-f="all">ALL</button>
@@ -267,6 +217,68 @@
     </div>
 
     <div class="watchlist-groups" id="watchlistGroups"></div>
+  </div>
+
+  <div class="app-page admin-page" id="adminPage" style="display:none">
+    <div class="watchlist-hero admin-hero">
+      <div>
+        <div class="watchlist-kicker">CONTROL</div>
+        <h2>Admin</h2>
+        <p>Keep global usage, banner controls, and project-wide stats out of the main app flow.</p>
+      </div>
+    </div>
+
+    <div class="usage-panel admin-panel admin-panel-page" id="globalUsagePanel" style="display:none">
+      <button class="admin-panel-toggle" id="adminPanelToggle" type="button">
+        <span>ADMIN PANEL</span>
+        <span class="admin-panel-arrow" id="adminPanelArrow">▶</span>
+      </button>
+      <div class="admin-panel-body" id="adminPanelBody" style="display:none">
+        <div class="usage-panel-row">
+          <span class="usage-panel-key">attachment storage</span>
+          <span class="usage-panel-val" id="globalAttachmentBytes">—</span>
+        </div>
+        <div class="usage-panel-row">
+          <span class="usage-panel-key">total todos</span>
+          <span class="usage-panel-val" id="globalTodoCount">—</span>
+        </div>
+        <div class="usage-panel-row">
+          <span class="usage-panel-key">total attachments</span>
+          <span class="usage-panel-val" id="globalAttachmentCount">—</span>
+        </div>
+        <div class="usage-panel-row">
+          <span class="usage-panel-key">total users</span>
+          <span class="usage-panel-val" id="globalUserCount">—</span>
+        </div>
+        <div class="usage-panel-block">
+          <div class="usage-panel-subtitle">Biggest Storage Users</div>
+          <div class="usage-panel-list" id="topStorageUsers">—</div>
+        </div>
+        <div class="usage-panel-block">
+          <div class="usage-panel-subtitle">File Types</div>
+          <div class="usage-panel-list" id="fileTypeBreakdown">—</div>
+        </div>
+        <div class="usage-panel-block">
+          <div class="usage-panel-subtitle">Site Notice</div>
+          <label class="usage-toggle">
+            <input type="checkbox" id="noticeEnabled">
+            <span>enable maintenance/announcement banner</span>
+          </label>
+          <div class="notice-mode-row">
+            <label class="usage-toggle">
+              <input type="radio" name="noticeMode" id="noticeModeAnnouncement" value="announcement" checked>
+              <span>announcement</span>
+            </label>
+            <label class="usage-toggle">
+              <input type="radio" name="noticeMode" id="noticeModeMaintenance" value="maintenance">
+              <span>maintenance</span>
+            </label>
+          </div>
+          <textarea class="usage-textarea" id="noticeText" rows="3" maxlength="500" placeholder="Write a maintenance notice or announcement..."></textarea>
+          <button class="usage-save-btn" id="saveNoticeBtn">SAVE NOTICE</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
