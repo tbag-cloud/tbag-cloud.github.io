@@ -1,10 +1,12 @@
-+const CACHE_NAME = 'todo-pwa-v4';
+const CACHE_NAME = 'todo-pwa-v6';
 const CORE_ASSETS = [
   './',
   './index.html',
-  './style.css?v=1.2.0',
-  './app-pages.js?v=1.2.0',
-  './script.js?v=1.2.0',
+  './style.css?v=1.4.0',
+  './app-pages.js?v=1.4.0',
+  './watchlist.js?v=1.4.0',
+  './admin.js?v=1.4.0',
+  './script.js?v=1.4.0',
   './manifest.webmanifest',
   './icon-192.png',
   './icon-512.png'
