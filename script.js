@@ -194,19 +194,50 @@ function updatePageMenuState() {
   });
 }
 
+function updateAdminAccess() {
+  const adminBtn = document.getElementById('menuPageAdmin');
+  if (!adminBtn) return;
+  const allowed = mode === 'synced' && isAdminUser();
+  adminBtn.style.display = allowed ? 'block' : 'none';
+  if (!allowed && currentPage === 'admin') {
+    currentPage = 'todo';
+  }
+}
+
 function updateWatchlistStats() {
   document.getElementById('statsLabel').textContent = '';
 }
 
-function setPage(page) {
-  currentPage = page === 'watchlist' ? 'watchlist' : 'todo';
+function pageFromHash(hash = window.location.hash) {
+  const clean = (hash || '').replace(/^#+/, '').toLowerCase();
+  if (clean === 'watchlist') return 'watchlist';
+  if (clean === 'admin') return 'admin';
+  return 'todo';
+}
+
+function syncPageHash() {
+  const nextHash = '#' + currentPage;
+  if (window.location.hash !== nextHash) {
+    history.replaceState(null, '', nextHash);
+  }
+}
+
+function setPage(page, { updateHash = true } = {}) {
+  const adminAllowed = mode === 'synced' && isAdminUser();
+  currentPage = page === 'watchlist'
+    ? 'watchlist'
+    : page === 'admin' && adminAllowed
+      ? 'admin'
+      : 'todo';
   document.getElementById('todoPage').style.display = currentPage === 'todo' ? 'block' : 'none';
   document.getElementById('watchlistPage').style.display = currentPage === 'watchlist' ? 'block' : 'none';
+  document.getElementById('adminPage').style.display = currentPage === 'admin' ? 'block' : 'none';
   document.getElementById('todoToolbar').style.display = currentPage === 'todo' ? 'flex' : 'none';
   const title = document.querySelector('h1 span');
-  if (title) title.textContent = currentPage === 'todo' ? 'TODO' : 'WATCHLIST';
+  if (title) title.textContent = currentPage === 'todo' ? 'TODO' : currentPage === 'watchlist' ? 'WATCHLIST' : 'ADMIN';
   updatePageMenuState();
   closeAppMenu();
+  if (updateHash) syncPageHash();
   if (currentPage === 'todo') render();
   else updateWatchlistStats();
 }
@@ -918,6 +949,7 @@ sb.auth.onAuthStateChange((event, session) => {
       ph.style.display = 'flex';
       ph.textContent = (session.user.email||'?')[0].toUpperCase();
     }
+    updateAdminAccess();
 
     // Avoid issuing more Supabase calls directly inside the auth callback.
     setTimeout(() => {
@@ -929,6 +961,7 @@ sb.auth.onAuthStateChange((event, session) => {
 
   } else {
     mode = 'guest'; currentUser = null;
+    updateAdminAccess();
     document.getElementById('appScreen').style.display = 'none';
     document.getElementById('authScreen').style.display = 'block';
   }
@@ -983,6 +1016,8 @@ function enterGuestMode() {
   renderWatchlistCategoryOptions();
   renderWatchlist();
   globalUsage = null;
+  updateAdminAccess();
+  if (currentPage === 'admin') currentPage = 'todo';
   render(); updateStorageMeter();
 }
 
@@ -1482,6 +1517,7 @@ document.querySelectorAll('.app-menu-item').forEach(btn => btn.addEventListener(
 document.addEventListener('click', e => {
   if (!e.target.closest('.menu-wrap')) closeAppMenu();
 });
+window.addEventListener('hashchange', () => setPage(pageFromHash(), { updateHash: false }));
 document.getElementById('watchlistQuickAdd').addEventListener('click', quickAddWatchlistItem);
 document.getElementById('watchlistExportBtn').addEventListener('click', exportWatchlist);
 document.getElementById('watchlistImportBtn').addEventListener('click', () => document.getElementById('watchlistImportFile').click());
@@ -1596,4 +1632,4 @@ if ('serviceWorker' in navigator) {
 loadGuestWatchlist();
 renderWatchlistCategoryOptions();
 renderWatchlist();
-setPage('todo');
+setPage(pageFromHash(), { updateHash: false });
