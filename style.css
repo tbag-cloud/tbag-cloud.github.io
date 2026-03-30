@@ -208,6 +208,7 @@ input[type=file]{display:none;}
 /* WATCHLIST */
 .watchlist-page{animation:fadeUp 0.22s ease;}
 .watchlist-hero{display:flex;justify-content:space-between;gap:18px;align-items:flex-end;margin-bottom:18px;padding:18px;border:1px solid var(--border);background:linear-gradient(135deg,rgba(124,111,255,0.14),rgba(255,107,107,0.08));}
+.watchlist-hero-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
 .watchlist-kicker,.watchlist-group-kicker{font-size:0.6rem;color:var(--muted);letter-spacing:0.14em;text-transform:uppercase;}
 .watchlist-hero h2{font-family:'Syne',sans-serif;font-size:2rem;line-height:1;margin:8px 0 10px;}
 .watchlist-hero p{font-size:0.76rem;color:var(--muted);line-height:1.7;max-width:480px;}
