@@ -897,6 +897,7 @@ sb.auth.onAuthStateChange((event, session) => {
         dot('err');
         toast('load error: ' + error.message, 'var(--danger)');
       });
+      setPage(pageFromHash(), { updateHash: false });
     }, 0);
 
   } else {
@@ -933,6 +934,12 @@ document.getElementById('btnUpgrade').addEventListener('click', () => {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) {
     document.getElementById('authScreen').style.display = 'block';
+    setPage(pageFromHash(), { updateHash: false });
+  } else {
+    mode = 'synced';
+    currentUser = session.user;
+    updateAdminAccess();
+    setPage(pageFromHash(), { updateHash: false });
   }
   await loadSiteNotice();
 })();
@@ -957,7 +964,7 @@ function enterGuestMode() {
   renderWatchlist();
   globalUsage = null;
   updateAdminAccess();
-  if (currentPage === 'admin') currentPage = 'todo';
+  setPage(pageFromHash(), { updateHash: false });
   render(); updateStorageMeter();
 }
 
