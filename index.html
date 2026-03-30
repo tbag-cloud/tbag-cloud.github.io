@@ -162,7 +162,12 @@
         <h2>Watchlist</h2>
         <p>Keep films, series, anime, and manga in one place without touching your todo flow.</p>
       </div>
-      <button class="watchlist-create-btn" id="watchlistQuickAdd" type="button">+ ADD CATEGORY</button>
+      <div class="watchlist-hero-actions">
+        <button class="watchlist-create-btn" id="watchlistQuickAdd" type="button">+ ADD CATEGORY</button>
+        <button class="watchlist-create-btn" id="watchlistExportBtn" type="button">EXPORT</button>
+        <button class="watchlist-create-btn" id="watchlistImportBtn" type="button">IMPORT</button>
+        <input id="watchlistImportFile" type="file" accept=".json">
+      </div>
     </div>
 
     <div class="watchlist-composer watchlist-category-composer" id="watchlistCategoryComposer" style="display:none">
