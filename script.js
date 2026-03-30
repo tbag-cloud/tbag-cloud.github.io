@@ -576,6 +576,50 @@ function saveWatchlistCategory() {
   toast('category added');
 }
 
+function exportWatchlist() {
+  const payload = {
+    version: 1,
+    exported: new Date().toISOString(),
+    categories: watchlistCategories,
+    items: watchlistData
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const link = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(blob),
+    download: 'watchlist_' + new Date().toISOString().slice(0, 10) + '.json'
+  });
+  link.click();
+  URL.revokeObjectURL(link.href);
+  toast('watchlist exported');
+}
+
+function importWatchlistFile(file) {
+  const reader = new FileReader();
+  reader.onload = event => {
+    try {
+      const parsed = JSON.parse(event.target.result);
+      const nextCategories = Array.isArray(parsed.categories) ? parsed.categories.filter(category => category?.key && category?.label) : null;
+      const nextItems = parsed.items && typeof parsed.items === 'object' ? parsed.items : null;
+      if (!nextCategories || !nextItems) throw new Error('invalid watchlist file');
+      watchlistCategories = nextCategories;
+      watchlistData = Object.fromEntries(
+        Object.entries(nextItems).map(([key, value]) => [key, Array.isArray(value) ? value : []])
+      );
+      ensureWatchlistDataShape();
+      saveWatchlistCategories();
+      saveWatchlist();
+      renderWatchlistCategoryOptions();
+      closeCategoryComposer();
+      closeDeleteCategoryComposer();
+      closeWatchlistComposer();
+      toast('watchlist imported');
+    } catch (error) {
+      toast('watchlist import failed', 'var(--danger)');
+    }
+  };
+  reader.readAsText(file);
+}
+
 function saveWatchlistComposer() {
   const category = document.getElementById('watchlistCategory').value;
   const title = document.getElementById('watchlistTitleInput').value.trim();
@@ -1260,6 +1304,13 @@ document.addEventListener('click', e => {
   if (!e.target.closest('.menu-wrap')) closeAppMenu();
 });
 document.getElementById('watchlistQuickAdd').addEventListener('click', quickAddWatchlistItem);
+document.getElementById('watchlistExportBtn').addEventListener('click', exportWatchlist);
+document.getElementById('watchlistImportBtn').addEventListener('click', () => document.getElementById('watchlistImportFile').click());
+document.getElementById('watchlistImportFile').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (file) importWatchlistFile(file);
+  e.target.value = '';
+});
 document.getElementById('watchlistCategoryComposerClose').addEventListener('click', closeCategoryComposer);
 document.getElementById('watchlistCategoryComposerSave').addEventListener('click', saveWatchlistCategory);
 document.getElementById('watchlistCategoryDeleteClose').addEventListener('click', closeDeleteCategoryComposer);
