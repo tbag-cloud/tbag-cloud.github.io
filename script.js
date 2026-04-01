@@ -238,6 +238,10 @@ document.getElementById('btnGoogle').addEventListener('click', () => {
     options: { redirectTo: window.location.href } 
   }).then(result => {
     console.log('OAuth result:', result);
+    if (!result.data.url) {
+      console.log('No redirect URL, redirecting manually...');
+      window.location.href = result.data.url || 'https://hxkjwebubmdqjzwmnvrh.supabase.co/auth/v1/authorize?provider=google&redirect_to=' + encodeURIComponent(window.location.href);
+    }
   }).catch(err => {
     console.error('OAuth error:', err);
     toast('login error: ' + err.message, 'var(--danger)');
