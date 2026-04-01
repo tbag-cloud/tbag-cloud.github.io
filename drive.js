@@ -22,44 +22,36 @@ async function loadSyncedDrive() {
   if (mode !== 'synced' || !currentUser) return;
   dot('syncing');
   
-  // Try without order first - handle missing columns gracefully
-  const { data, error } = await sb.from('attachments')
-    .select('*')
-    .eq('user_id', currentUser.id)
-    .eq('is_standalone', true);
-  
-  if (error) {
-    console.warn('Drive load failed:', error.message);
-    // Try without is_standalone filter as fallback
-    const { data: fallbackData, error: fallbackErr } = await sb.from('attachments')
+  let data, error;
+  try {
+    const result = await sb.from('attachments')
       .select('*')
-      .eq('user_id', currentUser.id);
+      .eq('user_id', currentUser.id)
+      .eq('is_standalone', true);
+    data = result.data;
+    error = result.error;
     
-    if (fallbackErr) {
-      console.warn('Drive fallback also failed:', fallbackErr.message);
-      dot('ok');
-      renderDrive();
-      return;
+    // If is_standalone column doesn't exist, get all and filter
+    if (error && error.message.includes('is_standalone')) {
+      const allResult = await sb.from('attachments')
+        .select('*')
+        .eq('user_id', currentUser.id);
+      data = allResult.data || [];
+      error = null;
     }
-    
-    driveFiles = (fallbackData || []).map(a => ({
-      id: a.id,
-      name: a.name,
-      size: a.size,
-      mime: a.mime_type,
-      path: a.path,
-      created: a.created_at || a.created
-    }));
-  } else {
-    driveFiles = (data || []).map(a => ({
-      id: a.id,
-      name: a.name,
-      size: a.size,
-      mime: a.mime_type,
-      path: a.path,
-      created: a.created_at || a.created
-    }));
+  } catch (e) {
+    console.warn('drive load error:', e);
+    data = [];
   }
+  
+  driveFiles = (data || []).map(a => ({
+    id: a.id,
+    name: a.name,
+    size: a.size,
+    mime: a.mime_type,
+    path: a.path,
+    created: a.created_at || a.created
+  }));
   
   dot('ok');
   renderDrive();
@@ -217,6 +209,7 @@ async function uploadDriveFile(rawFile) {
 
   let dbResult;
   try {
+    // Try with is_standalone first
     dbResult = await sb.from('attachments').insert({
       user_id: currentUser.id,
       name: file.name,
@@ -225,19 +218,34 @@ async function uploadDriveFile(rawFile) {
       path: path,
       is_standalone: true
     });
+    
+    // If error mentions is_standalone, retry without it
+    if (dbResult.error && dbResult.error.message.includes('is_standalone')) {
+      dbResult = await sb.from('attachments').insert({
+        user_id: currentUser.id,
+        name: file.name,
+        size: file.size,
+        mime_type: file.type,
+        path: path
+      });
+    }
   } catch (e) {
     console.warn('db insert error:', e);
-    await removeStoragePaths([path]).catch(() => {});
-    dot('err');
-    toast('record failed: ' + (e.message || 'check SQL column'), 'var(--danger)');
-    return;
-  }
-  
-  if (dbResult.error) {
-    await removeStoragePaths([path]).catch(() => {});
-    dot('err');
-    toast('record failed: ' + dbResult.error.message, 'var(--danger)');
-    return;
+    // Retry without is_standalone on catch
+    try {
+      dbResult = await sb.from('attachments').insert({
+        user_id: currentUser.id,
+        name: file.name,
+        size: file.size,
+        mime_type: file.type,
+        path: path
+      });
+    } catch (e2) {
+      await removeStoragePaths([path]).catch(() => {});
+      dot('err');
+      toast('record failed: ' + (e2.message || 'db error'), 'var(--danger)');
+      return;
+    }
   }
   
   dot('ok');
