@@ -162,17 +162,8 @@ async function deleteDriveFile(id) {
 }
 
 async function uploadDriveFile(rawFile) {
-  let file;
-  try {
-    file = await compressImage(rawFile);
-  } catch (e) {
-    console.warn('compress failed:', e);
-    file = rawFile;
-  }
-  
-  if (file.size < rawFile.size) {
-    toast('compressed ' + rawFile.name + ': ' + fmtSize(rawFile.size) + ' → ' + fmtSize(file.size));
-  }
+  // Skip compression for now - upload raw to isolate issues
+  const file = rawFile;
   
   if (mode === 'guest') {
     if (file.size > MAX_GUEST_FILE) {
@@ -305,7 +296,12 @@ document.getElementById('driveFileInput').addEventListener('change', async e => 
   if (!files.length) return;
   
   for (const f of files) {
-    await uploadDriveFile(f);
+    try {
+      await uploadDriveFile(f);
+    } catch (err) {
+      console.error('upload error:', err);
+      toast('upload error: ' + (err.message || 'unknown'), 'var(--danger)');
+    }
   }
   
   e.target.value = '';
