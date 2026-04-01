@@ -241,6 +241,7 @@ async function uploadDriveFile(rawFile) {
   
   dot('ok');
   await loadSyncedDrive();
+  loadDrivePreviews();
   toast('uploaded ' + file.name);
 }
 
