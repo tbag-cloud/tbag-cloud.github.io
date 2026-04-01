@@ -165,7 +165,9 @@ function updateStorageMeter() {
     fill.style.width = pct.toFixed(1) + '%';
     label.textContent = 'local storage: ' + fmtSize(bytes) + ' / ~5MB';
   } else {
-    const bytes = Object.values(attMap).flat().reduce((s,a) => s + (a.size||0), 0);
+    const todoBytes = Object.values(attMap).flat().reduce((s,a) => s + (a.size||0), 0);
+    const driveBytes = driveFiles ? driveFiles.reduce((s,a) => s + (a.size||0), 0) : 0;
+    const bytes = todoBytes + driveBytes;
     const pct = Math.min(100, (bytes / SYNC_STORAGE_LIMIT) * 100);
     fill.className = 'storage-fill' + (pct > 80 ? ' full' : pct > 60 ? ' warn' : '');
     fill.style.width = pct.toFixed(1) + '%';
