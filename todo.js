@@ -37,15 +37,14 @@ async function loadSynced() {
 
   if (tErr) { dot('err'); toast('load error: ' + tErr.message, 'var(--danger)'); return; }
 
-  // Load attachments - simple approach, get all and filter client-side
+  // Load attachments - get all, don't filter (drive.js handles Drive separately)
   let aData = [];
   try {
     const result = await sb.from('attachments').select('*').eq('user_id', currentUser.id);
     if (result.error) {
       console.warn('attachments query error:', result.error);
     } else {
-      // Filter out drive files (those with path containing /drive/)
-      aData = (result.data || []).filter(a => !a.path || !a.path.includes('/drive/'));
+      aData = result.data || [];
     }
   } catch (e) {
     console.warn('attachments query failed:', e);
