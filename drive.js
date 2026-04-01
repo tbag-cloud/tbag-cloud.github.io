@@ -22,22 +22,22 @@ async function loadSyncedDrive() {
   if (mode !== 'synced' || !currentUser) return;
   dot('syncing');
   
-  let data, error;
+  let data;
   try {
+    // Get ALL attachments - filter client-side instead of using is_standalone filter
     const result = await sb.from('attachments')
       .select('*')
-      .eq('user_id', currentUser.id)
-      .eq('is_standalone', true);
-    data = result.data;
-    error = result.error;
+      .eq('user_id', currentUser.id);
     
-    // If is_standalone column doesn't exist, get all and filter
-    if (error && error.message.includes('is_standalone')) {
-      const allResult = await sb.from('attachments')
-        .select('*')
-        .eq('user_id', currentUser.id);
-      data = allResult.data || [];
-      error = null;
+    if (result.error) {
+      console.warn('load error:', result.error);
+      data = [];
+    } else {
+      // Filter to only show files that look like Drive files (have 'drive/' in path or no todo_id)
+      data = (result.data || []).filter(a => 
+        (a.path && a.path.includes('/drive/')) || 
+        (!a.todo_id && a.is_standalone)
+      );
     }
   } catch (e) {
     console.warn('drive load error:', e);
@@ -195,7 +195,8 @@ async function uploadDriveFile(rawFile) {
   }
 
   const ext = file.name.split('.').pop();
-  const path = currentUser.id + '/drive/' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.' + ext;
+  const fileId = Date.now() + '_' + Math.random().toString(36).slice(2,7);
+  const path = currentUser.id + '/drive/' + fileId + '_' + file.name;
   
   dot('syncing');
   
