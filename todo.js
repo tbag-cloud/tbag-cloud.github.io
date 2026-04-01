@@ -34,7 +34,19 @@ function saveGuest() {
 async function loadSynced() {
   dot('syncing');
   const { data: tData, error: tErr } = await sb.from('todos').select('*').eq('user_id', currentUser.id);
-  const { data: aData, error: aErr } = await sb.from('attachments').select('*').eq('user_id', currentUser.id).eq('is_standalone', false);
+  
+  // Try to get attachments without is_standalone filter - handle old tables
+  let aData, aErr;
+  try {
+    const result = await sb.from('attachments').select('*').eq('user_id', currentUser.id).eq('is_standalone', false);
+    aData = result.data;
+    aErr = result.error;
+  } catch (e) {
+    // Fallback - get all attachments and filter manually
+    const result = await sb.from('attachments').select('*').eq('user_id', currentUser.id);
+    aData = (result.data || []).filter(a => !a.is_standalone);
+    aErr = result.error;
+  }
 
   if (tErr) { dot('err'); toast('load error: ' + tErr.message, 'var(--danger)'); return; }
   if (aErr) { dot('err'); toast('attachments load error: ' + aErr.message, 'var(--danger)'); return; }
