@@ -231,22 +231,9 @@ sb.auth.onAuthStateChange((event, session) => {
   }
 });
 
-document.getElementById('btnGoogle').addEventListener('click', () => {
-  console.log('Login clicked, starting OAuth...');
-  sb.auth.signInWithOAuth({ 
-    provider: 'google', 
-    options: { redirectTo: window.location.href } 
-  }).then(result => {
-    console.log('OAuth result:', result);
-    if (!result.data.url) {
-      console.log('No redirect URL, redirecting manually...');
-      window.location.href = result.data.url || 'https://hxkjwebubmdqjzwmnvrh.supabase.co/auth/v1/authorize?provider=google&redirect_to=' + encodeURIComponent(window.location.href);
-    }
-  }).catch(err => {
-    console.error('OAuth error:', err);
-    toast('login error: ' + err.message, 'var(--danger)');
-  });
-});
+document.getElementById('btnGoogle').onclick = function() {
+  window.location.href = 'https://hxkjwebubmdqjzwmnvrh.supabase.co/auth/v1/authorize?provider=google&redirect_to=' + encodeURIComponent(window.location.href);
+};
 document.getElementById('btnSignOut').addEventListener('click', async () => {
   const { error } = await sb.auth.signOut();
   if (error) toast('sign out failed: ' + error.message, 'var(--danger)');
