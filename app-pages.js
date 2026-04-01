@@ -67,8 +67,12 @@ function setPage(page, { updateHash = true } = {}) {
   if (currentPage === 'todo') render();
   else if (currentPage === 'drive') { 
     loadSyncedDrive().catch(err => { console.warn('drive load error:', err); toast('drive load failed', 'var(--danger)'); });
-    updateStorageMeter(); 
-    if (typeof loadGlobalUsage === 'function') loadGlobalUsage().catch(err => { console.warn('global usage error:', err); });
   }
   else updateWatchlistStats();
+  
+  // Always update storage meter and global usage on page change
+  if (mode === 'synced') {
+    if (typeof updateStorageMeter === 'function') updateStorageMeter();
+    if (typeof loadGlobalUsage === 'function') loadGlobalUsage().catch(err => { console.warn('global usage error:', err); });
+  }
 }
