@@ -306,18 +306,6 @@ document.getElementById('driveFileInput').addEventListener('change', async e => 
 });
 
 // Export/Import disabled for Drive
-// document.getElementById('driveExportBtn').addEventListener('click', exportDrive);
-// document.getElementById('driveImportBtn').addEventListener('click', () => {
-  document.getElementById('driveImportFile').click();
-});
-
-document.getElementById('driveImportFile').addEventListener('change', e => {
-  const file = e.target.files[0];
-  if (file) {
-    importDriveFile(file);
-    e.target.value = '';
-  }
-});
 
 document.getElementById('driveSearchInp').addEventListener('input', e => {
   driveSearchQ = e.target.value.trim();
