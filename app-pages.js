@@ -6,6 +6,11 @@ function closeAppMenu() {
 
 function updatePageMenuState() {
   document.querySelectorAll('.app-menu-item').forEach(btn => {
+    if (btn.dataset.page === 'drive' && mode === 'guest') {
+      btn.style.display = 'none';
+    } else {
+      btn.style.display = '';
+    }
     btn.classList.toggle('active', btn.dataset.page === currentPage);
   });
 }
@@ -60,6 +65,10 @@ function setPage(page, { updateHash = true } = {}) {
   closeAppMenu();
   if (updateHash) syncPageHash();
   if (currentPage === 'todo') render();
-  else if (currentPage === 'drive') { loadSyncedDrive(); updateStorageMeter(); if (typeof loadGlobalUsage === 'function') loadGlobalUsage(); }
+  else if (currentPage === 'drive') { 
+    loadSyncedDrive().catch(err => { console.warn('drive load error:', err); toast('drive load failed', 'var(--danger)'); });
+    updateStorageMeter(); 
+    if (typeof loadGlobalUsage === 'function') loadGlobalUsage().catch(err => { console.warn('global usage error:', err); });
+  }
   else updateWatchlistStats();
 }
