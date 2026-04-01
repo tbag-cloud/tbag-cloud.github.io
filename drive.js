@@ -21,27 +21,45 @@ function saveDriveState() {
 async function loadSyncedDrive() {
   if (mode !== 'synced' || !currentUser) return;
   dot('syncing');
+  
+  // Try without order first - handle missing columns gracefully
   const { data, error } = await sb.from('attachments')
     .select('*')
     .eq('user_id', currentUser.id)
-    .eq('is_standalone', true)
-    .order('created_at', { ascending: false });
+    .eq('is_standalone', true);
   
   if (error) {
-    console.warn('Drive load failed (column may not exist):', error.message);
-    dot('ok');
-    renderDrive();
-    return;
+    console.warn('Drive load failed:', error.message);
+    // Try without is_standalone filter as fallback
+    const { data: fallbackData, error: fallbackErr } = await sb.from('attachments')
+      .select('*')
+      .eq('user_id', currentUser.id);
+    
+    if (fallbackErr) {
+      console.warn('Drive fallback also failed:', fallbackErr.message);
+      dot('ok');
+      renderDrive();
+      return;
+    }
+    
+    driveFiles = (fallbackData || []).map(a => ({
+      id: a.id,
+      name: a.name,
+      size: a.size,
+      mime: a.mime_type,
+      path: a.path,
+      created: a.created_at || a.created
+    }));
+  } else {
+    driveFiles = (data || []).map(a => ({
+      id: a.id,
+      name: a.name,
+      size: a.size,
+      mime: a.mime_type,
+      path: a.path,
+      created: a.created_at || a.created
+    }));
   }
-  
-  driveFiles = (data || []).map(a => ({
-    id: a.id,
-    name: a.name,
-    size: a.size,
-    mime: a.mime_type,
-    path: a.path,
-    created: a.created_at
-  }));
   
   dot('ok');
   renderDrive();
