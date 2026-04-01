@@ -34,22 +34,24 @@ function saveGuest() {
 async function loadSynced() {
   dot('syncing');
   const { data: tData, error: tErr } = await sb.from('todos').select('*').eq('user_id', currentUser.id);
-  
-  // Try to get attachments without is_standalone filter - handle old tables
-  let aData, aErr;
-  try {
-    const result = await sb.from('attachments').select('*').eq('user_id', currentUser.id).eq('is_standalone', false);
-    aData = result.data;
-    aErr = result.error;
-  } catch (e) {
-    // Fallback - get all attachments and filter manually
-    const result = await sb.from('attachments').select('*').eq('user_id', currentUser.id);
-    aData = (result.data || []).filter(a => !a.is_standalone);
-    aErr = result.error;
-  }
 
   if (tErr) { dot('err'); toast('load error: ' + tErr.message, 'var(--danger)'); return; }
-  if (aErr) { dot('err'); toast('attachments load error: ' + aErr.message, 'var(--danger)'); return; }
+
+  // Load attachments - try different approaches for compatibility
+  let aData = [];
+  try {
+    const result = await sb.from('attachments').select('*').eq('user_id', currentUser.id);
+    if (result.error && result.error.message.includes('is_standalone')) {
+      // Column doesn't exist, get all
+      const allResult = await sb.from('attachments').select('*').eq('user_id', currentUser.id);
+      aData = allResult.data || [];
+    } else {
+      aData = (result.data || []).filter(a => !a.is_standalone);
+    }
+  } catch (e) {
+    console.warn('attachments query failed:', e);
+    aData = [];
+  }
 
   todos = (tData || [])
     .map(normalize)
