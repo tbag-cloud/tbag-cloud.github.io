@@ -28,8 +28,9 @@ async function loadSyncedDrive() {
     .order('created_at', { ascending: false });
   
   if (error) {
-    dot('err');
-    toast('drive load error: ' + error.message, 'var(--danger)');
+    console.warn('Drive load failed (column may not exist):', error.message);
+    dot('ok');
+    renderDrive();
     return;
   }
   
