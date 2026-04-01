@@ -154,8 +154,16 @@ async function deleteDriveFile(id) {
 }
 
 async function uploadDriveFile(rawFile) {
-  // Skip compression for now - upload raw to isolate issues
-  const file = rawFile;
+  let file;
+  try {
+    file = await compressImage(rawFile);
+    if (file.size < rawFile.size) {
+      toast('compressed ' + rawFile.name + ': ' + fmtSize(rawFile.size) + ' → ' + fmtSize(file.size));
+    }
+  } catch (e) {
+    console.warn('compress failed:', e);
+    file = rawFile;
+  }
   
   if (mode === 'guest') {
     if (file.size > MAX_GUEST_FILE) {
