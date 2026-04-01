@@ -1,4 +1,5 @@
-const CACHE_NAME = 'todo-pwa-v13';
+const CACHE_NAME = 'todo-pwa-v15';
+
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -29,61 +30,22 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') return;
-
   const url = new URL(event.request.url);
   
-  // Let Supabase requests pass through normally (no blocking)
+  // Skip Supabase - let browser handle it
   if (url.hostname.includes('supabase.co')) {
     event.respondWith(fetch(event.request));
     return;
   }
-
-  const isSameOrigin = url.origin === self.location.origin;
-  const isNavigation = event.request.mode === 'navigate';
-  const isAppAsset = isSameOrigin && (
-    url.pathname.endsWith('.js')
-    || url.pathname.endsWith('.css')
-    || url.pathname.endsWith('.html')
-    || url.pathname.endsWith('.png')
-    || url.pathname.endsWith('.webmanifest')
-  );
-
-  // For navigation, always try network first
-  if (isNavigation) {
+  
+  // App assets - cache first
+  if (url.pathname.endsWith('.js') || url.pathname.endsWith('.css') || url.pathname.endsWith('.html')) {
     event.respondWith(
-      fetch(event.request)
-        .then(response => {
-          if (response && response.status === 200) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-          }
-          return response;
-        })
-        .catch(() => caches.match('./index.html'))
+      caches.match(event.request).then(cached => cached || fetch(event.request))
     );
     return;
   }
-
-  // For app assets, try cache first
-  if (isAppAsset) {
-    event.respondWith(
-      caches.match(event.request).then(cached => {
-        if (cached) return cached;
-        return fetch(event.request).then(response => {
-          if (response && response.status === 200) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-          }
-          return response;
-        });
-      })
-    );
-    return;
-  }
-
-  // Everything else (images etc)
-  event.respondWith(
-    fetch(event.request).then(response => response).catch(() => caches.match(event.request))
-  );
+  
+  // Everything else - network first
+  event.respondWith(fetch(event.request));
 });
