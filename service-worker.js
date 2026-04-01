@@ -1,4 +1,4 @@
-const CACHE_NAME = 'todo-pwa-v12';
+const CACHE_NAME = 'todo-pwa-v13';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -33,8 +33,9 @@ self.addEventListener('fetch', event => {
 
   const url = new URL(event.request.url);
   
-  // Skip Supabase API requests entirely
+  // Let Supabase requests pass through normally (no blocking)
   if (url.hostname.includes('supabase.co')) {
+    event.respondWith(fetch(event.request));
     return;
   }
 
