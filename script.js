@@ -481,6 +481,4 @@ if ('serviceWorker' in navigator) {
 loadGuestWatchlist();
 renderWatchlistCategoryOptions();
 renderWatchlist();
-loadDriveState();
-renderDrive();
 setPage(pageFromHash(), { updateHash: false });
