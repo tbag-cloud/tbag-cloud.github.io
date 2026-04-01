@@ -118,16 +118,16 @@ async function deleteTodo(id) {
 }
 
 async function commitEdit(id, text, desc) {
-  text = text.trim(); if (!text) { editingId = null; render(); return; }
+  text = text.trim(); if (!text) { clearEditingState(); render(); return; }
   if (mode === 'guest') {
     const t = todos.find(t => t.id === id);
     if (t) { t.text = text; t.desc = desc.trim(); }
-    editingId = null; saveGuest(); render();
+    clearEditingState(); saveGuest(); render();
   } else {
     dot('syncing');
     const { error } = await sb.from('todos').update({ text, description: desc.trim() }).eq('id', id).eq('user_id', currentUser.id);
     if (error) { dot('err'); toast('save failed', 'var(--danger)'); return; }
-    editingId = null; await loadSynced();
+    clearEditingState(); await loadSynced();
   }
 }
 
@@ -251,7 +251,8 @@ function buildItem(t) {
 
   let body;
   if (isEdit) {
-    body = '<input class="edit-inp" value="' + esc(t.text) + '" data-id="' + t.id + '">'
+    const valueToUse = editingId === t.id && editingValue !== '' ? editingValue : t.text;
+    body = '<input class="edit-inp" value="' + esc(valueToUse) + '" data-id="' + t.id + '">'
       + '<textarea class="edit-desc-ta" data-id="' + t.id + '" rows="2" placeholder="description...">' + esc(t.desc||'') + '</textarea>';
   } else {
     const attBadge = atts.length ? ' · 📎 ' + atts.length : '';
@@ -292,7 +293,14 @@ function bindEvents(tl) {
   });
   tl.querySelectorAll('.check-area').forEach(el => el.addEventListener('click', () => toggleDone(el.dataset.id)));
   tl.querySelectorAll('.edit-btn').forEach(el => el.addEventListener('click', () => {
-    editingId = el.dataset.id; confirmDeleteId = null; render();
+    const todo = todos.find(t => t.id === el.dataset.id);
+    if (todo) {
+      editingId = el.dataset.id;
+      editingValue = todo.text;
+      saveEditingState();
+      confirmDeleteId = null;
+      render();
+    }
     requestAnimationFrame(() => { const i = document.querySelector('.edit-inp'); if (i) { i.focus(); i.select(); } });
   }));
   tl.querySelectorAll('.confirm-del-btn').forEach(el => el.addEventListener('click', () => {
@@ -304,17 +312,29 @@ function bindEvents(tl) {
     const inp = tl.querySelector('.edit-inp'), desc = tl.querySelector('.edit-desc-ta');
     if (inp) commitEdit(el.dataset.id, inp.value, desc?.value || '');
   }));
-  tl.querySelectorAll('.cancel-btn').forEach(el => el.addEventListener('click', () => { editingId = null; render(); }));
-  tl.querySelectorAll('.edit-inp').forEach(inp => inp.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { editingId = null; render(); }
-    if (e.key === 'Enter' && !e.shiftKey) { const desc = tl.querySelector('.edit-desc-ta'); commitEdit(inp.dataset.id, inp.value, desc?.value||''); }
-  }));
+  tl.querySelectorAll('.cancel-btn').forEach(el => el.addEventListener('click', () => { clearEditingState(); render(); }));
+  tl.querySelectorAll('.edit-inp').forEach(inp => {
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { clearEditingState(); render(); }
+      if (e.key === 'Enter' && !e.shiftKey) { const desc = tl.querySelector('.edit-desc-ta'); commitEdit(inp.dataset.id, inp.value, desc?.value||''); }
+    });
+    inp.addEventListener('input', e => {
+      editingValue = e.target.value;
+      saveEditingState();
+    });
+  });
   tl.querySelectorAll('[data-role]').forEach(btn => btn.addEventListener('click', e => {
     e.stopPropagation();
     const id = btn.dataset.id, role = btn.dataset.role;
     if (role === 'desc') {
       if (!btn.classList.contains('vis') && !expandedIds.has(id)) {
-        editingId = id; render();
+        const todo = todos.find(t => t.id === id);
+        if (todo) {
+          editingId = id;
+          editingValue = todo.text;
+          saveEditingState();
+        }
+        render();
         requestAnimationFrame(() => { const ta = document.querySelector('.edit-desc-ta'); if (ta) ta.focus(); });
         return;
       }
