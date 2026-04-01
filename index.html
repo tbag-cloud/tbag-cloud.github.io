@@ -45,6 +45,7 @@
         <button class="hdr-btn menu-btn" id="menuToggle">☰ MENU</button>
         <div class="app-menu" id="appMenu" style="display:none">
           <button class="app-menu-item active" id="menuPageTodo" data-page="todo" type="button">TODO</button>
+          <button class="app-menu-item" id="menuPageDrive" data-page="drive" type="button">DRIVE</button>
           <button class="app-menu-item" id="menuPageWatchlist" data-page="watchlist" type="button">WATCHLIST</button>
           <button class="app-menu-item" id="menuPageAdmin" data-page="admin" type="button" style="display:none">ADMIN</button>
         </div>
@@ -102,6 +103,32 @@
     <div class="bottom-bar" id="bottomBar" style="display:none">
       <span id="bottomCount"></span>
       <button class="clear-btn" id="btnClear">CLEAR COMPLETED</button>
+    </div>
+  </div>
+
+  <div class="app-page drive-page" id="drivePage" style="display:none">
+    <div class="drive-hero">
+      <div>
+        <div class="drive-kicker">STORAGE</div>
+        <h2>Drive</h2>
+        <p>Your standalone files — photos, PDFs, docs — all in one place. Accessible from any device.</p>
+      </div>
+      <div class="drive-hero-actions">
+        <button class="drive-upload-btn" id="driveUploadBtn" type="button">+ UPLOAD FILE</button>
+        <button class="drive-io-btn" id="driveExportBtn" type="button">EXPORT</button>
+        <button class="drive-io-btn" id="driveImportBtn" type="button">IMPORT</button>
+        <input id="driveImportFile" type="file" accept=".json" multiple>
+        <input type="file" id="driveFileInput" multiple>
+      </div>
+    </div>
+    <div class="drive-search-wrap">
+      <input class="search-inp" id="driveSearchInp" placeholder="search files..." autocomplete="off">
+      <button class="search-clear" id="driveSearchClear">×</button>
+    </div>
+    <div class="drive-grid" id="driveGrid"></div>
+    <div class="drive-empty" id="driveEmpty" style="display:none">
+      <div class="big">📂</div>
+      <p>no files yet — upload your first file</p>
     </div>
   </div>
 
@@ -289,5 +316,8 @@
 <script src="admin.js?v=1.5.0"></script>
 <script src="todo.js?v=1.5.0"></script>
 <script src="script.js?v=1.5.0"></script>
+<script src="drive.js?v=1.5.0"></script>
 </body>
 </html>
+
+
