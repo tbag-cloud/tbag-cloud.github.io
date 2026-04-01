@@ -1,4 +1,4 @@
-const CACHE_NAME = 'todo-pwa-v8';
+const CACHE_NAME = 'todo-pwa-v9';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -32,35 +32,57 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
+  
+  // Skip Supabase API requests entirely
+  if (url.hostname.includes('supabase.co')) {
+    return;
+  }
+
   const isSameOrigin = url.origin === self.location.origin;
   const isNavigation = event.request.mode === 'navigate';
-  const isAppShellAsset = isSameOrigin && (
-    url.pathname.endsWith('/index.html')
-    || url.pathname === '/'
-    || url.pathname.endsWith('/style.css')
-    || url.pathname.endsWith('/script.js')
-    || url.pathname.endsWith('/manifest.webmanifest')
+  const isAppAsset = isSameOrigin && (
+    url.pathname.endsWith('.js')
+    || url.pathname.endsWith('.css')
+    || url.pathname.endsWith('.html')
+    || url.pathname.endsWith('.png')
+    || url.pathname.endsWith('.webmanifest')
   );
 
-  event.respondWith(
-    (isNavigation || isAppShellAsset)
-      ? fetch(event.request)
-          .then(response => {
-            if (response && response.status === 200) {
-              const responseClone = response.clone();
-              caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
-            }
-            return response;
-          })
-          .catch(() => caches.match(event.request).then(cached => cached || caches.match('./index.html')))
-      : caches.match(event.request).then(cached => {
-          if (cached) return cached;
-          return fetch(event.request).then(response => {
-            if (!response || response.status !== 200 || response.type !== 'basic') return response;
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
-            return response;
-          });
+  // For navigation, always try network first
+  if (isNavigation) {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          }
+          return response;
         })
+        .catch(() => caches.match('./index.html'))
+    );
+    return;
+  }
+
+  // For app assets, try cache first
+  if (isAppAsset) {
+    event.respondWith(
+      caches.match(event.request).then(cached => {
+        if (cached) return cached;
+        return fetch(event.request).then(response => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          }
+          return response;
+        });
+      })
+    );
+    return;
+  }
+
+  // Everything else (images etc)
+  event.respondWith(
+    fetch(event.request).then(response => response).catch(() => caches.match(event.request))
   );
 });
