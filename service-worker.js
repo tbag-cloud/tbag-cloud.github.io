@@ -1,4 +1,4 @@
-const CACHE_NAME = 'todo-pwa-v15';
+const CACHE_NAME = 'todo-pwa-v16';
 
 const CORE_ASSETS = [
   './',
@@ -31,21 +31,43 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
+  const isSupabase = url.hostname.includes('supabase.co') || url.hostname.includes('supabase');
+  const isNav = event.request.mode === 'navigate';
   
-  // Skip Supabase - let browser handle it
-  if (url.hostname.includes('supabase.co')) {
+  // Supabase API - network only, no caching
+  if (isSupabase) {
     event.respondWith(fetch(event.request));
     return;
   }
   
-  // App assets - cache first
-  if (url.pathname.endsWith('.js') || url.pathname.endsWith('.css') || url.pathname.endsWith('.html')) {
+  // App shell assets - cache first for speed
+  const isAppAsset = url.pathname.endsWith('.js') || 
+                     url.pathname.endsWith('.css') || 
+                     url.pathname.endsWith('.html') ||
+                     url.pathname.endsWith('.webmanifest') ||
+                     url.pathname.endsWith('.png');
+  
+  if (isAppAsset && !isNav) {
     event.respondWith(
-      caches.match(event.request).then(cached => cached || fetch(event.request))
+      caches.match(event.request).then(cached => {
+        if (cached) return cached;
+        return fetch(event.request).then(response => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          }
+          return response;
+        });
+      })
     );
     return;
   }
   
-  // Everything else - network first
-  event.respondWith(fetch(event.request));
+  // Navigation and other requests - network first
+  event.respondWith(
+    fetch(event.request).catch(() => {
+      if (isNav) return caches.match('./index.html');
+      return new Response('Offline', { status: 503 });
+    })
+  );
 });
