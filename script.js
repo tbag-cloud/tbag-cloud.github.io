@@ -160,10 +160,11 @@ function updateStorageMeter() {
     updateGlobalUsagePanel();
     let bytes = 0;
     try { bytes = (localStorage.getItem(LS_TODOS)||'').length + (localStorage.getItem(LS_ATTS)||'').length; } catch {}
-    const pct = Math.min(100, (bytes / 5000000) * 100);
+    const maxGuest = 5000000;
+    const pct = Math.min(100, (bytes / maxGuest) * 100);
     fill.className = 'storage-fill' + (pct > 80 ? ' full' : pct > 60 ? ' warn' : '');
     fill.style.width = pct.toFixed(1) + '%';
-    label.textContent = 'local storage: ' + fmtSize(bytes) + ' / ~5MB';
+    label.textContent = 'local storage: ' + fmtSize(bytes) + ' / ~5MB' + (pct > 80 ? ' ⚠️' : '');
   } else {
     const todoBytes = Object.values(attMap).flat().reduce((s,a) => s + (a.size||0), 0);
     const driveBytes = (typeof driveFiles !== 'undefined' && driveFiles) ? driveFiles.reduce((s,a) => s + (a.size||0), 0) : 0;
