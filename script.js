@@ -256,18 +256,29 @@ document.getElementById('btnUpgrade').addEventListener('click', () => {
 });
 
 (async () => {
-  const hash = window.location.hash;
-  console.log('Hash:', hash.substring(0, 50) + '...');
+  // Handle hash - could be #todo#access_token or just #access_token
+  let hash = window.location.hash;
+  console.log('Full hash:', hash.substring(0, 80) + '...');
   
-  if (hash && hash.includes('access_token')) {
-    const params = new URLSearchParams(hash.replace(/^#+/, ''));
-    const at = params.get('access_token'), rt = params.get('refresh_token');
-    console.log('Token found, setting session...', at ? 'yes' : 'no', rt ? 'yes' : 'no');
+  // Extract token part (after the last #)
+  const tokenPart = hash.includes('#access_token') 
+    ? hash.substring(hash.indexOf('#access_token') + 1)
+    : (hash.includes('access_token') ? hash.replace(/^#+/, '') : '');
+  
+  if (tokenPart.includes('access_token')) {
+    const params = new URLSearchParams(tokenPart);
+    const at = params.get('access_token');
+    const rt = params.get('refresh_token');
+    console.log('Token found - access:', at ? 'yes' : 'no', 'refresh:', rt ? 'yes' : 'no');
+    
     if (at && rt) {
       try {
-        const result = await sb.auth.setSession({ access_token: at, refresh_token: rt });
-        console.log('Session set result:', result);
-        history.replaceState(null, '', window.location.pathname + window.location.hash.replace(/access_token.*/, '#'));
+        await sb.auth.setSession({ access_token: at, refresh_token: rt });
+        // Clean URL but keep page hash
+        const pageHash = hash.includes('#todo') || hash.includes('#drive') || hash.includes('#watchlist') || hash.includes('#admin') 
+          ? hash.match(/#(todo|drive|watchlist|admin)/)?.[0] || '' 
+          : '';
+        history.replaceState(null, '', window.location.pathname + pageHash);
       } catch (e) {
         console.error('setSession error:', e);
       }
