@@ -16,9 +16,40 @@ let attMap = {};
 let filter = 'all';
 let searchQ = '';
 let editingId = null;
+let editingValue = '';
 let confirmDeleteId = null;
 let expandedIds = new Set();
 let openAttIds = new Set();
+
+// Restore editing state from session storage (survives tab backgrounding)
+try {
+  const savedEditing = sessionStorage.getItem('todo_editing');
+  if (savedEditing) {
+    const parsed = JSON.parse(savedEditing);
+    if (parsed.id) {
+      editingId = parsed.id;
+      editingValue = parsed.value || '';
+    }
+  }
+} catch {}
+
+// Save editing state when it changes
+function saveEditingState() {
+  try {
+    if (editingId) {
+      sessionStorage.setItem('todo_editing', JSON.stringify({ id: editingId, value: editingValue }));
+    } else {
+      sessionStorage.removeItem('todo_editing');
+    }
+  } catch {}
+}
+
+// Clear saved editing on save/cancel
+function clearEditingState() {
+  editingId = null;
+  editingValue = '';
+  try { sessionStorage.removeItem('todo_editing'); } catch {}
+}
 let globalUsage = null;
 let siteNotice = null;
 let adminPanelOpen = false;
@@ -450,4 +481,6 @@ if ('serviceWorker' in navigator) {
 loadGuestWatchlist();
 renderWatchlistCategoryOptions();
 renderWatchlist();
+loadDriveState();
+renderDrive();
 setPage(pageFromHash(), { updateHash: false });
