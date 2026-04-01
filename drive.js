@@ -24,20 +24,20 @@ async function loadSyncedDrive() {
   
   let data;
   try {
-    // Get ALL attachments - filter client-side instead of using is_standalone filter
+    // Get ALL attachments - filter by path containing /drive/
     const result = await sb.from('attachments')
       .select('*')
       .eq('user_id', currentUser.id);
+    
+    console.log('All attachments:', result.data?.map(a => a.path));
     
     if (result.error) {
       console.warn('load error:', result.error);
       data = [];
     } else {
-      // Filter to only show files that look like Drive files (have 'drive/' in path or no todo_id)
-      data = (result.data || []).filter(a => 
-        (a.path && a.path.includes('/drive/')) || 
-        (!a.todo_id && a.is_standalone)
-      );
+      // Filter to only show Drive files (path contains /drive/)
+      data = (result.data || []).filter(a => a.path && a.path.includes('/drive/'));
+      console.log('Filtered drive files:', data.length, data.map(a => a.path));
     }
   } catch (e) {
     console.warn('drive load error:', e);
@@ -218,43 +218,28 @@ async function uploadDriveFile(rawFile) {
 
   let dbResult;
   try {
-    // Try with is_standalone first
+    // Simple insert - same as todo attachments
     dbResult = await sb.from('attachments').insert({
       user_id: currentUser.id,
       name: file.name,
       size: file.size,
       mime_type: file.type,
-      path: path,
-      is_standalone: true
+      path: path
     });
-    
-    // If error mentions is_standalone, retry without it
-    if (dbResult.error && dbResult.error.message.includes('is_standalone')) {
-      dbResult = await sb.from('attachments').insert({
-        user_id: currentUser.id,
-        name: file.name,
-        size: file.size,
-        mime_type: file.type,
-        path: path
-      });
-    }
   } catch (e) {
     console.warn('db insert error:', e);
-    // Retry without is_standalone on catch
-    try {
-      dbResult = await sb.from('attachments').insert({
-        user_id: currentUser.id,
-        name: file.name,
-        size: file.size,
-        mime_type: file.type,
-        path: path
-      });
-    } catch (e2) {
-      await removeStoragePaths([path]).catch(() => {});
-      dot('err');
-      toast('record failed: ' + (e2.message || 'db error'), 'var(--danger)');
-      return;
-    }
+    await removeStoragePaths([path]).catch(() => {});
+    dot('err');
+    toast('record failed: ' + (e.message || 'db error'), 'var(--danger)');
+    return;
+  }
+  
+  if (dbResult.error) {
+    console.warn('insert error:', dbResult.error);
+    await removeStoragePaths([path]).catch(() => {});
+    dot('err');
+    toast('record failed: ' + dbResult.error.message, 'var(--danger)');
+    return;
   }
   
   dot('ok');
