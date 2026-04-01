@@ -242,6 +242,7 @@ async function uploadDriveFile(rawFile) {
   dot('ok');
   await loadSyncedDrive();
   loadDrivePreviews();
+  if (typeof updateStorageMeter === 'function') updateStorageMeter();
   toast('uploaded ' + file.name);
 }
 
