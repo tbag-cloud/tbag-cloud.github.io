@@ -37,20 +37,18 @@ async function loadSynced() {
 
   if (tErr) { dot('err'); toast('load error: ' + tErr.message, 'var(--danger)'); return; }
 
-  // Load attachments - try different approaches for compatibility
+  // Load attachments - simple approach, get all and filter client-side
   let aData = [];
   try {
     const result = await sb.from('attachments').select('*').eq('user_id', currentUser.id);
-    if (result.error && result.error.message.includes('is_standalone')) {
-      // Column doesn't exist, get all
-      const allResult = await sb.from('attachments').select('*').eq('user_id', currentUser.id);
-      aData = allResult.data || [];
+    if (result.error) {
+      console.warn('attachments query error:', result.error);
     } else {
-      aData = (result.data || []).filter(a => !a.is_standalone);
+      // Filter out drive files (those with path containing /drive/)
+      aData = (result.data || []).filter(a => !a.path || !a.path.includes('/drive/'));
     }
   } catch (e) {
     console.warn('attachments query failed:', e);
-    aData = [];
   }
 
   todos = (tData || [])
