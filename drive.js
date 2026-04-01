@@ -162,7 +162,14 @@ async function deleteDriveFile(id) {
 }
 
 async function uploadDriveFile(rawFile) {
-  const file = await compressImage(rawFile);
+  let file;
+  try {
+    file = await compressImage(rawFile);
+  } catch (e) {
+    console.warn('compress failed:', e);
+    file = rawFile;
+  }
+  
   if (file.size < rawFile.size) {
     toast('compressed ' + rawFile.name + ': ' + fmtSize(rawFile.size) + ' → ' + fmtSize(file.size));
   }
@@ -189,36 +196,56 @@ async function uploadDriveFile(rawFile) {
     reader.readAsDataURL(file);
     return;
   }
-  
-  if (file.size > MAX_SYNC_FILE) {
+
+  const MAX_FILE = 50 * 1024 * 1024;
+  if (file.size > MAX_FILE) {
     toast('max 50MB per file', 'var(--accent2)');
     return;
   }
-  
+
   const ext = file.name.split('.').pop();
   const path = currentUser.id + '/drive/' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.' + ext;
   
   dot('syncing');
-  const { error: upErr } = await sb.storage.from('attachments').upload(path, file);
-  if (upErr) {
+  
+  let uploadResult;
+  try {
+    uploadResult = await sb.storage.from('attachments').upload(path, file);
+  } catch (e) {
+    console.warn('storage upload error:', e);
     dot('err');
-    toast('upload failed: ' + upErr.message, 'var(--danger)');
+    toast('upload failed: ' + (e.message || 'unknown error'), 'var(--danger)');
     return;
   }
   
-  const { error: dbErr } = await sb.from('attachments').insert({
-    user_id: currentUser.id,
-    name: file.name,
-    size: file.size,
-    mime_type: file.type,
-    path: path,
-    is_standalone: true
-  });
-  
-  if (dbErr) {
+  if (uploadResult.error) {
+    dot('err');
+    toast('upload failed: ' + uploadResult.error.message, 'var(--danger)');
+    return;
+  }
+
+  let dbResult;
+  try {
+    dbResult = await sb.from('attachments').insert({
+      user_id: currentUser.id,
+      name: file.name,
+      size: file.size,
+      mime_type: file.type,
+      path: path,
+      is_standalone: true
+    });
+  } catch (e) {
+    console.warn('db insert error:', e);
     await removeStoragePaths([path]).catch(() => {});
     dot('err');
-    toast('record failed: ' + dbErr.message, 'var(--danger)');
+    toast('record failed: ' + (e.message || 'check SQL column'), 'var(--danger)');
+    return;
+  }
+  
+  if (dbResult.error) {
+    await removeStoragePaths([path]).catch(() => {});
+    dot('err');
+    toast('record failed: ' + dbResult.error.message, 'var(--danger)');
     return;
   }
   
