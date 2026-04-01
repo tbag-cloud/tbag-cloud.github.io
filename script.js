@@ -257,15 +257,26 @@ document.getElementById('btnUpgrade').addEventListener('click', () => {
 
 (async () => {
   const hash = window.location.hash;
+  console.log('Hash:', hash.substring(0, 50) + '...');
+  
   if (hash && hash.includes('access_token')) {
     const params = new URLSearchParams(hash.replace(/^#+/, ''));
     const at = params.get('access_token'), rt = params.get('refresh_token');
+    console.log('Token found, setting session...', at ? 'yes' : 'no', rt ? 'yes' : 'no');
     if (at && rt) {
-      await sb.auth.setSession({ access_token: at, refresh_token: rt });
-      history.replaceState(null, '', window.location.pathname);
+      try {
+        const result = await sb.auth.setSession({ access_token: at, refresh_token: rt });
+        console.log('Session set result:', result);
+        history.replaceState(null, '', window.location.pathname + window.location.hash.replace(/access_token.*/, '#'));
+      } catch (e) {
+        console.error('setSession error:', e);
+      }
     }
   }
+  
   const { data: { session } } = await sb.auth.getSession();
+  console.log('Session:', session ? 'exists' : 'none');
+  
   if (!session) {
     document.getElementById('authScreen').style.display = 'block';
     setPage(pageFromHash(), { updateHash: false });
