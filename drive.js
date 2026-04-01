@@ -24,23 +24,20 @@ async function loadSyncedDrive() {
   
   let data;
   try {
-    // Get ALL attachments - filter by path containing /drive/
+    // Get ALL attachments - show all of them in Drive for now
     const result = await sb.from('attachments')
       .select('*')
       .eq('user_id', currentUser.id);
     
-    console.log('All attachments:', result.data?.map(a => a.path));
+    console.log('All attachments:', result.data?.map(a => ({ path: a.path, todo_id: a.todo_id })));
     
     if (result.error) {
       console.warn('load error:', result.error);
       data = [];
     } else {
-      // Filter: path contains /drive/ OR todo_id is the drive placeholder
-      data = (result.data || []).filter(a => 
-        (a.path && a.path.includes('/drive/')) || 
-        a.todo_id === '00000000-0000-0000-0000-000000000000'
-      );
-      console.log('Filtered drive files:', data.length, data.map(a => a.path));
+      // Show all attachments in Drive for now
+      data = result.data || [];
+      console.log('Drive files (all):', data.length);
     }
   } catch (e) {
     console.warn('drive load error:', e);
