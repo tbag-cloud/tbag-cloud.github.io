@@ -26,6 +26,7 @@ function updateWatchlistStats() {
 
 function pageFromHash(hash = window.location.hash) {
   const clean = (hash || '').replace(/^#+/, '').toLowerCase();
+  if (clean === 'drive') return 'drive';
   if (clean === 'watchlist') return 'watchlist';
   if (clean === 'admin') return 'admin';
   return 'todo';
@@ -40,20 +41,25 @@ function syncPageHash() {
 
 function setPage(page, { updateHash = true } = {}) {
   const adminAllowed = mode === 'synced' && isAdminUser();
+  const driveAllowed = mode === 'synced';
   currentPage = page === 'watchlist'
     ? 'watchlist'
-    : page === 'admin' && adminAllowed
-      ? 'admin'
-      : 'todo';
+    : page === 'drive' && driveAllowed
+      ? 'drive'
+      : page === 'admin' && adminAllowed
+        ? 'admin'
+        : 'todo';
   document.getElementById('todoPage').style.display = currentPage === 'todo' ? 'block' : 'none';
+  document.getElementById('drivePage').style.display = currentPage === 'drive' ? 'block' : 'none';
   document.getElementById('watchlistPage').style.display = currentPage === 'watchlist' ? 'block' : 'none';
   document.getElementById('adminPage').style.display = currentPage === 'admin' ? 'block' : 'none';
   document.getElementById('todoToolbar').style.display = currentPage === 'todo' ? 'flex' : 'none';
   const title = document.querySelector('h1 span');
-  if (title) title.textContent = currentPage === 'todo' ? 'TODO' : currentPage === 'watchlist' ? 'WATCHLIST' : 'ADMIN';
+  if (title) title.textContent = currentPage === 'todo' ? 'TODO' : currentPage === 'drive' ? 'DRIVE' : currentPage === 'watchlist' ? 'WATCHLIST' : 'ADMIN';
   updatePageMenuState();
   closeAppMenu();
   if (updateHash) syncPageHash();
   if (currentPage === 'todo') render();
+  else if (currentPage === 'drive') { loadSyncedDrive(); }
   else updateWatchlistStats();
 }
