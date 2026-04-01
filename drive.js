@@ -146,6 +146,8 @@ async function deleteDriveFile(id) {
   }
   
   await loadSyncedDrive();
+  loadDrivePreviews();
+  if (typeof updateStorageMeter === 'function') updateStorageMeter();
   toast('deleted');
 }
 
