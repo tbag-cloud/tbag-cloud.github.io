@@ -60,7 +60,7 @@ function renderDrive() {
   if (mode === 'guest') {
     grid.innerHTML = '';
     empty.style.display = 'block';
-    empty.innerHTML = '<div class="big">🔒</div><p>drive is synced only — sign in to use</p>';
+    empty.innerHTML = '<div class="big">🔒</div><p>drive is synced only - sign in to use</p>';
     return;
   }
   
@@ -69,7 +69,7 @@ function renderDrive() {
   if (!list.length) {
     grid.innerHTML = '';
     empty.style.display = 'block';
-    empty.innerHTML = '<div class="big">📂</div><p>no files yet — upload your first file</p>';
+    empty.innerHTML = '<div class="big">📂</div><p>no files yet - upload your first file</p>';
     return;
   }
   
