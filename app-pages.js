@@ -60,6 +60,6 @@ function setPage(page, { updateHash = true } = {}) {
   closeAppMenu();
   if (updateHash) syncPageHash();
   if (currentPage === 'todo') render();
-  else if (currentPage === 'drive') { loadSyncedDrive(); }
+  else if (currentPage === 'drive') { loadSyncedDrive(); updateStorageMeter(); if (typeof loadGlobalUsage === 'function') loadGlobalUsage(); }
   else updateWatchlistStats();
 }
