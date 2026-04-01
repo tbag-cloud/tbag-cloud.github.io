@@ -50,6 +50,7 @@ async function loadSyncedDrive() {
   
   dot('ok');
   renderDrive();
+  loadDrivePreviews();
 }
 
 function getFilteredDrive() {
