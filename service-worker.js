@@ -1,4 +1,4 @@
-const CACHE_NAME = 'todo-pwa-v16';
+const CACHE_NAME = 'todo-pwa-v17';
 
 const CORE_ASSETS = [
   './',
