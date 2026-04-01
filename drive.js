@@ -24,20 +24,15 @@ async function loadSyncedDrive() {
   
   let data;
   try {
-    // Get ALL attachments - show all of them in Drive for now
     const result = await sb.from('attachments')
       .select('*')
       .eq('user_id', currentUser.id);
-    
-    console.log('All attachments:', result.data?.map(a => ({ path: a.path, todo_id: a.todo_id })));
     
     if (result.error) {
       console.warn('load error:', result.error);
       data = [];
     } else {
-      // Show all attachments in Drive for now
       data = result.data || [];
-      console.log('Drive files (all):', data.length);
     }
   } catch (e) {
     console.warn('drive load error:', e);
@@ -310,9 +305,9 @@ document.getElementById('driveFileInput').addEventListener('change', async e => 
   e.target.value = '';
 });
 
-document.getElementById('driveExportBtn').addEventListener('click', exportDrive);
-
-document.getElementById('driveImportBtn').addEventListener('click', () => {
+// Export/Import disabled for Drive
+// document.getElementById('driveExportBtn').addEventListener('click', exportDrive);
+// document.getElementById('driveImportBtn').addEventListener('click', () => {
   document.getElementById('driveImportFile').click();
 });
 
