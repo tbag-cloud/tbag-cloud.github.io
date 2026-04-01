@@ -173,12 +173,12 @@ function updateStorageMeter() {
     fill.style.width = pct.toFixed(1) + '%';
     label.textContent = 'supabase storage: ' + fmtSize(bytes) + ' / 1GB (' + pct.toFixed(0) + '%)';
 
-    const todoBytes = new Blob([JSON.stringify(todos)]).size;
-    const dbPct = Math.min(100, (todoBytes / DATABASE_LIMIT_ESTIMATE) * 100);
+    const dbBytes = new Blob([JSON.stringify(todos)]).size;
+    const dbPct = Math.min(100, (dbBytes / DATABASE_LIMIT_ESTIMATE) * 100);
     dbBar.className = 'storage-bar visible';
     dbFill.className = 'storage-fill' + (dbPct > 80 ? ' full' : dbPct > 60 ? ' warn' : '');
     dbFill.style.width = dbPct.toFixed(1) + '%';
-    dbLabel.textContent = 'database estimate (todos): ' + fmtSize(todoBytes) + ' / ~500MB (' + dbPct.toFixed(0) + '%)';
+    dbLabel.textContent = 'database estimate (todos): ' + fmtSize(dbBytes) + ' / ~500MB (' + dbPct.toFixed(0) + '%)';
 
     // Show clear-done-attachments button if relevant
     const doneIds = new Set(todos.filter(t=>t.done).map(t=>t.id));
