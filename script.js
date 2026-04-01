@@ -166,13 +166,21 @@ function updateStorageMeter() {
     fill.style.width = pct.toFixed(1) + '%';
     label.textContent = 'local storage: ' + fmtSize(bytes) + ' / ~5MB' + (pct > 80 ? ' ⚠️' : '');
   } else {
-    // Use attMap for storage calculation (it has all attachments now)
-    // No need to add driveFiles - attMap already contains everything
-    const bytes = Object.values(attMap).flat().reduce((s,a) => s + (a.size||0), 0);
-    const pct = Math.min(100, (bytes / SYNC_STORAGE_LIMIT) * 100);
-    fill.className = 'storage-fill' + (pct > 80 ? ' full' : pct > 60 ? ' warn' : '');
-    fill.style.width = pct.toFixed(1) + '%';
-    label.textContent = 'supabase storage: ' + fmtSize(bytes) + ' / 1GB (' + pct.toFixed(0) + '%)';
+    // Query all attachments from DB (like admin does)
+    sb.from('attachments').select('size').eq('user_id', currentUser.id).then(result => {
+      const bytes = result.data ? result.data.reduce((s,a) => s + (a.size||0), 0) : 0;
+      const pct = Math.min(100, (bytes / SYNC_STORAGE_LIMIT) * 100);
+      fill.className = 'storage-fill' + (pct > 80 ? ' full' : pct > 60 ? ' warn' : '');
+      fill.style.width = pct.toFixed(1) + '%';
+      label.textContent = 'supabase storage: ' + fmtSize(bytes) + ' / 1GB (' + pct.toFixed(0) + '%)';
+    }).catch(() => {
+      // Fallback to attMap
+      const bytes = Object.values(attMap).flat().reduce((s,a) => s + (a.size||0), 0);
+      const pct = Math.min(100, (bytes / SYNC_STORAGE_LIMIT) * 100);
+      fill.className = 'storage-fill' + (pct > 80 ? ' full' : pct > 60 ? ' warn' : '');
+      fill.style.width = pct.toFixed(1) + '%';
+      label.textContent = 'supabase storage: ' + fmtSize(bytes) + ' / 1GB (' + pct.toFixed(0) + '%)';
+    });
 
     const dbBytes = new Blob([JSON.stringify(todos)]).size;
     const dbPct = Math.min(100, (dbBytes / DATABASE_LIMIT_ESTIMATE) * 100);
