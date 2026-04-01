@@ -1,4 +1,4 @@
-const CACHE_NAME = 'todo-pwa-v7';
+const CACHE_NAME = 'todo-pwa-v8';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -8,6 +8,7 @@ const CORE_ASSETS = [
   './admin.js?v=1.5.0',
   './todo.js?v=1.5.0',
   './script.js?v=1.5.0',
+  './drive.js?v=1.5.0',
   './manifest.webmanifest',
   './icon-192.png',
   './icon-512.png'
