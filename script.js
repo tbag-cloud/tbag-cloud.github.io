@@ -112,9 +112,12 @@ function dot(s) { document.getElementById('syncDot').className = 'sync-dot ' + s
 // ── IMAGE COMPRESS ────────────────────────────────────────────────────────────
 async function compressImage(file, maxW=1600, quality=0.82) {
   return new Promise(resolve => {
+    if (!file || !file.type) { resolve(file); return; }
     if (!file.type.startsWith('image/')) { resolve(file); return; }
+    
     const img = new Image();
     const url = URL.createObjectURL(file);
+    
     img.onload = () => {
       URL.revokeObjectURL(url);
       let {width:w, height:h} = img;
@@ -129,7 +132,13 @@ async function compressImage(file, maxW=1600, quality=0.82) {
         resolve(new File([blob], file.name, {type: blob.type || file.type}));
       }, file.type || 'image/jpeg', quality);
     };
-    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      console.warn('Image load failed, using original');
+      resolve(file);
+    };
+    
     img.src = url;
   });
 }
@@ -222,9 +231,18 @@ sb.auth.onAuthStateChange((event, session) => {
   }
 });
 
-document.getElementById('btnGoogle').addEventListener('click', () =>
-  sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } })
-);
+document.getElementById('btnGoogle').addEventListener('click', () => {
+  console.log('Login clicked, starting OAuth...');
+  sb.auth.signInWithOAuth({ 
+    provider: 'google', 
+    options: { redirectTo: window.location.href } 
+  }).then(result => {
+    console.log('OAuth result:', result);
+  }).catch(err => {
+    console.error('OAuth error:', err);
+    toast('login error: ' + err.message, 'var(--danger)');
+  });
+});
 document.getElementById('btnSignOut').addEventListener('click', async () => {
   const { error } = await sb.auth.signOut();
   if (error) toast('sign out failed: ' + error.message, 'var(--danger)');
