@@ -285,52 +285,68 @@ async function importDriveFile(file) {
 }
 
 // ── DRIVE EVENT BINDINGS ──────────────────────────────────────────────────────
-document.getElementById('driveUploadBtn').addEventListener('click', () => {
-  document.getElementById('driveFileInput').click();
-});
+// Only bind events when elements exist (after page loads)
+const driveUploadBtn = document.getElementById('driveUploadBtn');
+if (driveUploadBtn) {
+  driveUploadBtn.addEventListener('click', () => {
+    const fileInput = document.getElementById('driveFileInput');
+    if (fileInput) fileInput.click();
+  });
+}
 
-document.getElementById('driveFileInput').addEventListener('change', async e => {
-  const files = e.target.files;
-  if (!files.length) return;
-  
-  for (const f of files) {
-    try {
-      await uploadDriveFile(f);
-    } catch (err) {
-      console.error('upload error:', err);
-      toast('upload error: ' + (err.message || 'unknown'), 'var(--danger)');
+const driveFileInput = document.getElementById('driveFileInput');
+if (driveFileInput) {
+  driveFileInput.addEventListener('change', async e => {
+    const files = e.target.files;
+    if (!files.length) return;
+    
+    for (const f of files) {
+      try {
+        await uploadDriveFile(f);
+      } catch (err) {
+        console.error('upload error:', err);
+        toast('upload error: ' + (err.message || 'unknown'), 'var(--danger)');
+      }
     }
-  }
-  
-  e.target.value = '';
-});
+    
+    e.target.value = '';
+  });
+}
 
-// Export/Import disabled for Drive
+const driveSearchInp = document.getElementById('driveSearchInp');
+const driveSearchClear = document.getElementById('driveSearchClear');
+const driveGrid = document.getElementById('driveGrid');
 
-document.getElementById('driveSearchInp').addEventListener('input', e => {
-  driveSearchQ = e.target.value.trim();
-  document.getElementById('driveSearchClear').className = 'search-clear' + (driveSearchQ ? ' vis' : '');
-  renderDrive();
-});
+if (driveSearchInp) {
+  driveSearchInp.addEventListener('input', e => {
+    driveSearchQ = e.target.value.trim();
+    if (driveSearchClear) driveSearchClear.className = 'search-clear' + (driveSearchQ ? ' vis' : '');
+    renderDrive();
+  });
+}
 
-document.getElementById('driveSearchClear').addEventListener('click', () => {
-  driveSearchQ = '';
-  document.getElementById('driveSearchInp').value = '';
-  document.getElementById('driveSearchClear').className = 'search-clear';
-  renderDrive();
-});
+if (driveSearchClear) {
+  driveSearchClear.addEventListener('click', () => {
+    driveSearchQ = '';
+    if (driveSearchInp) driveSearchInp.value = '';
+    driveSearchClear.className = 'search-clear';
+    renderDrive();
+  });
+}
 
-document.getElementById('driveGrid').addEventListener('click', async e => {
-  const delBtn = e.target.closest('.drive-card-btn.del');
-  if (delBtn) {
-    const card = delBtn.closest('.drive-card');
-    if (card) await deleteDriveFile(card.dataset.id);
-    return;
-  }
-  
-  const card = e.target.closest('.drive-card');
-  if (card) await openDriveFile(card.dataset.id);
-});
+if (driveGrid) {
+  driveGrid.addEventListener('click', async e => {
+    const delBtn = e.target.closest('.drive-card-btn.del');
+    if (delBtn) {
+      const card = delBtn.closest('.drive-card');
+      if (card) await deleteDriveFile(card.dataset.id);
+      return;
+    }
+    
+    const card = e.target.closest('.drive-card');
+    if (card) await openDriveFile(card.dataset.id);
+  });
+}
 
 async function loadDrivePreviews() {
   const grid = document.getElementById('driveGrid');
