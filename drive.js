@@ -38,7 +38,7 @@ async function loadSyncedDrive() {
       // Filter: path contains /drive/ OR todo_id is the drive placeholder
       data = (result.data || []).filter(a => 
         (a.path && a.path.includes('/drive/')) || 
-        a.todo_id === 'drive-placeholder'
+        a.todo_id === '00000000-0000-0000-0000-000000000000'
       );
       console.log('Filtered drive files:', data.length, data.map(a => a.path));
     }
@@ -221,14 +221,14 @@ async function uploadDriveFile(rawFile) {
 
   let dbResult;
   try {
-    // Insert with placeholder todo_id for Drive files
+    // Insert with a placeholder UUID for todo_id (valid UUID format)
     dbResult = await sb.from('attachments').insert({
       user_id: currentUser.id,
       name: file.name,
       size: file.size,
       mime_type: file.type,
       path: path,
-      todo_id: 'drive-placeholder'
+      todo_id: '00000000-0000-0000-0000-000000000000'
     });
   } catch (e) {
     console.warn('db insert error:', e);
