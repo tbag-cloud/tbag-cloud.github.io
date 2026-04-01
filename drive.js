@@ -35,8 +35,11 @@ async function loadSyncedDrive() {
       console.warn('load error:', result.error);
       data = [];
     } else {
-      // Filter to only show Drive files (path contains /drive/)
-      data = (result.data || []).filter(a => a.path && a.path.includes('/drive/'));
+      // Filter: path contains /drive/ OR todo_id is the drive placeholder
+      data = (result.data || []).filter(a => 
+        (a.path && a.path.includes('/drive/')) || 
+        a.todo_id === 'drive-placeholder'
+      );
       console.log('Filtered drive files:', data.length, data.map(a => a.path));
     }
   } catch (e) {
@@ -218,13 +221,14 @@ async function uploadDriveFile(rawFile) {
 
   let dbResult;
   try {
-    // Simple insert - same as todo attachments
+    // Insert with placeholder todo_id for Drive files
     dbResult = await sb.from('attachments').insert({
       user_id: currentUser.id,
       name: file.name,
       size: file.size,
       mime_type: file.type,
-      path: path
+      path: path,
+      todo_id: 'drive-placeholder'
     });
   } catch (e) {
     console.warn('db insert error:', e);
