@@ -148,6 +148,7 @@ async function deleteDriveFile(id) {
   await loadSyncedDrive();
   loadDrivePreviews();
   if (typeof updateStorageMeter === 'function') updateStorageMeter();
+  if (typeof loadGlobalUsage === 'function') loadGlobalUsage();
   toast('deleted');
 }
 
@@ -245,6 +246,7 @@ async function uploadDriveFile(rawFile) {
   await loadSyncedDrive();
   loadDrivePreviews();
   if (typeof updateStorageMeter === 'function') updateStorageMeter();
+  if (typeof loadGlobalUsage === 'function') loadGlobalUsage();
   toast('uploaded ' + file.name);
 }
 
