@@ -9,21 +9,56 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="TODO">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="preconnect" href="https://hxkjwebubmdqjzwmnvrh.supabase.co">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="style.css?v=1.4.0">
+<link rel="stylesheet" href="style.css?v=1.18.0">
 </head>
 <body>
 
-<div class="site-banner" id="siteBanner" style="display:none">
-  <div class="site-banner-title" id="siteBannerTitle">NOTICE</div>
-  <div class="site-banner-text" id="siteBannerText"></div>
-</div>
+<nav class="sidebar" id="sidebar">
+    <div class="sidebar-inner">
+      <div class="sidebar-head">
+        <h1 class="sidebar-logo">// <span>TODO</span></h1>
+      </div>
+      <div class="sidebar-nav">
+        <button class="sidebar-btn active" data-page="todo" type="button"><span class="sidebar-btn-icon">▣</span>TODO <span class="sidebar-count" id="navCountTodo"></span></button>
+        <button class="sidebar-btn" data-page="drive" type="button"><span class="sidebar-btn-icon">↑</span>DRIVE <span class="sidebar-count" id="navCountDrive"></span></button>
+        <button class="sidebar-btn" data-page="watchlist" type="button"><span class="sidebar-btn-icon">★</span>WATCHLIST <span class="sidebar-count" id="navCountWatchlist"></span></button>
+        <button class="sidebar-btn" data-page="settings" type="button"><span class="sidebar-btn-icon">◆</span>SETTINGS</button>
+        <button class="sidebar-btn" id="sidebarAdmin" data-page="admin" type="button" style="display:none"><span class="sidebar-btn-icon">▲</span>ADMIN</button>
+      </div>
+      <div class="site-banner" id="siteBanner" style="display:none">
+        <div class="site-banner-title" id="siteBannerTitle">NOTICE</div>
+        <div class="site-banner-text" id="siteBannerText"></div>
+      </div>
+      <div class="sidebar-foot">
+        <div class="sidebar-user" id="sidebarUser">
+          <div class="sync-dot" id="sidebarSyncDot"></div>
+          <img class="avatar" id="sidebarAvatar" src="data:," alt="User avatar" style="display:none">
+          <div class="avatar-ph" id="sidebarAvatarPh">?</div>
+          <span class="mode-badge guest-mode" id="sidebarModeBadge">GUEST</span>
+          <span class="sidebar-user-email" id="sidebarUserEmail"></span>
+        </div>
+        <div class="sidebar-storage" id="sidebarStorage" style="display:none">
+          <div class="sidebar-storage-track"><div class="sidebar-storage-fill" id="sidebarStorageFill"></div></div>
+          <span class="sidebar-storage-label" id="sidebarStorageLabel"></span>
+        </div>
+        <div class="sidebar-foot-actions">
+          <button class="sidebar-btn" id="sidebarSwitchAcctBtn" type="button">SWITCH ACCOUNT</button>
+          <button class="sidebar-btn sidebar-signout danger" id="sidebarSignOutBtn" type="button" style="display:none">SIGN OUT</button>
+        </div>
+      </div>
+    </div>
+  </nav>
 
-<div id="authScreen">
+  <div id="authScreen">
   <h2>// <span>TODO</span></h2>
   <p>Sign in to sync across devices - or continue as a guest with local storage and file attachments.</p>
   <div class="auth-btns">
@@ -40,46 +75,87 @@
   <header>
     <div class="header-top">
       <h1>// <span>TODO</span></h1>
-      <div class="stats" id="statsLabel">—</div>
+      <div class="stats" id="statsLabel"></div>
       <div class="menu-wrap">
         <button class="hdr-btn menu-btn" id="menuToggle">☰ MENU</button>
         <div class="app-menu" id="appMenu" style="display:none">
           <button class="app-menu-item active" id="menuPageTodo" data-page="todo" type="button">TODO</button>
           <button class="app-menu-item" id="menuPageDrive" data-page="drive" type="button">DRIVE</button>
           <button class="app-menu-item" id="menuPageWatchlist" data-page="watchlist" type="button">WATCHLIST</button>
+          <button class="app-menu-item" id="menuPageSettings" data-page="settings" type="button">SETTINGS</button>
           <button class="app-menu-item" id="menuPageAdmin" data-page="admin" type="button" style="display:none">ADMIN</button>
         </div>
       </div>
       <div class="user-area">
         <div class="sync-dot" id="syncDot"></div>
-        <img class="avatar" id="userAvatar" src="" alt="" style="display:none">
+        <img class="avatar" id="userAvatar" src="data:," alt="User avatar" style="display:none">
         <div class="avatar-ph" id="avatarPh">?</div>
         <span class="mode-badge guest-mode" id="modeBadge">GUEST</span>
         <button class="hdr-btn" id="btnUpgrade" style="display:none">↑ SIGN IN</button>
         <button class="hdr-btn danger" id="btnSignOut" style="display:none">SIGN OUT</button>
       </div>
     </div>
-    <div class="storage-bar" id="storageBar">
-      <div class="storage-label" id="storageLabel">—</div>
-      <div class="storage-track"><div class="storage-fill" id="storageFill" style="width:0%"></div></div>
+  </header>
+
+  <div id="heroTodo" class="todo-hero">
+    <div>
+      <div class="todo-kicker">TASKS</div>
+      <h2>Todo</h2>
+      <p>Manage your tasks, set priorities, and track progress — all in one place.</p>
     </div>
-    <div class="storage-bar" id="dbStorageBar">
-      <div class="storage-label" id="dbStorageLabel">—</div>
-      <div class="storage-track"><div class="storage-fill" id="dbStorageFill" style="width:0%"></div></div>
+  </div>
+  <div id="heroDrive" class="drive-hero" style="display:none">
+    <div>
+      <div class="drive-kicker">STORAGE</div>
+      <h2>Drive</h2>
+      <p>Your standalone files - photos, PDFs, docs - all in one place. Accessible from any device.</p>
     </div>
+  </div>
+  <div id="heroWatchlist" class="watchlist-hero" style="display:none">
+    <div>
+      <div class="watchlist-kicker">ENTERTAINMENT</div>
+      <h2>Watchlist</h2>
+      <p>Keep films, series, anime, and manga in one place without touching your todo flow.</p>
+    </div>
+  </div>
+  <div id="heroSettings" class="settings-hero" style="display:none">
+    <div>
+      <div class="settings-kicker">CONFIG</div>
+      <h2>Settings</h2>
+      <p>Appearance, defaults, compression, and data management.</p>
+    </div>
+  </div>
+  <div id="heroAdmin" class="watchlist-hero admin-hero" style="display:none">
+    <div>
+      <div class="watchlist-kicker">CONTROL</div>
+      <h2>Admin</h2>
+      <p>Keep global usage, banner controls, and project-wide stats out of the main app flow.</p>
+    </div>
+  </div>
+
+  <div class="storage-bar" id="storageBar">
+    <div class="storage-label" id="storageLabel">—</div>
+    <div class="storage-track"><div class="storage-fill" id="storageFill" style="width:0%"></div></div>
+  </div>
+
+  <div class="storage-warning" id="storageWarning" style="display:none"></div>
+
+  <div class="app-page" id="todoPage">
     <div class="toolbar" id="todoToolbar">
       <button class="filter-btn active" data-f="all">ALL</button>
       <button class="filter-btn" data-f="active">ACTIVE</button>
       <button class="filter-btn" data-f="done">DONE</button>
       <button class="filter-btn" data-f="high">🔴 HIGH</button>
+      <button class="filter-btn" id="filterDue" data-f="due">📅 DUE</button>
+      <button class="filter-btn" id="filterArchived" data-f="archived">📦 ARCHIVED</button>
+      <button class="io-btn" id="btnBulk">☐ BULK</button>
+      <button class="io-btn" id="btnUndo">↩ UNDO</button>
+      <button class="io-btn" id="btnArchiveDone">📦 ARCHIVE DONE</button>
       <button class="io-btn" id="btnExport">↑ EXPORT</button>
       <button class="io-btn" id="btnImport">↓ IMPORT</button>
       <button class="io-btn warn-btn" id="btnClearAtts" style="display:none">🗑 CLEAR DONE ATTS</button>
       <input type="file" id="importFile" accept=".json">
     </div>
-  </header>
-
-  <div class="app-page" id="todoPage">
     <div class="search-wrap">
       <input class="search-inp" id="searchInp" placeholder="search tasks..." autocomplete="off">
       <button class="search-clear" id="searchClear">×</button>
@@ -104,19 +180,13 @@
       <span id="bottomCount"></span>
       <button class="clear-btn" id="btnClear">CLEAR COMPLETED</button>
     </div>
+    <div class="page-stats" id="todoStats"></div>
   </div>
 
   <div class="app-page drive-page" id="drivePage" style="display:none">
-    <div class="drive-hero">
-      <div>
-        <div class="drive-kicker">STORAGE</div>
-        <h2>Drive</h2>
-        <p>Your standalone files - photos, PDFs, docs - all in one place. Accessible from any device.</p>
-      </div>
-      <div class="drive-hero-actions">
-        <button class="drive-upload-btn" id="driveUploadBtn" type="button">+ UPLOAD FILE</button>
-        <input type="file" id="driveFileInput" multiple>
-      </div>
+    <div class="drive-hero-actions">
+      <button class="drive-upload-btn" id="driveUploadBtn" type="button">+ UPLOAD FILE</button>
+      <input type="file" id="driveFileInput" multiple>
     </div>
     <div class="drive-search-wrap">
       <input class="search-inp" id="driveSearchInp" placeholder="search files..." autocomplete="off">
@@ -127,160 +197,51 @@
       <div class="big">📂</div>
       <p>no files yet — upload your first file</p>
     </div>
+    <div class="page-stats" id="driveStats"></div>
   </div>
 
   <div class="app-page watchlist-page" id="watchlistPage" style="display:none">
-    <div class="watchlist-hero">
-      <div>
-        <div class="watchlist-kicker">ENTERTAINMENT</div>
-        <h2>Watchlist</h2>
-        <p>Keep films, series, anime, and manga in one place without touching your todo flow.</p>
-      </div>
-      <div class="watchlist-hero-actions">
-        <button class="watchlist-create-btn" id="watchlistQuickAdd" type="button">+ ADD CATEGORY</button>
-        <button class="watchlist-create-btn" id="watchlistExportBtn" type="button">EXPORT</button>
-        <button class="watchlist-create-btn" id="watchlistImportBtn" type="button">IMPORT</button>
-        <input id="watchlistImportFile" type="file" accept=".json">
-      </div>
+    <div class="watchlist-hero-actions">
+      <button class="watchlist-create-btn" id="watchlistExportBtn" type="button">EXPORT</button>
+      <button class="watchlist-create-btn" id="watchlistImportBtn" type="button">IMPORT</button>
+      <input id="watchlistImportFile" type="file" accept=".json">
     </div>
-
-    <div class="watchlist-composer watchlist-category-composer" id="watchlistCategoryComposer" style="display:none">
-      <div class="watchlist-composer-head">
-        <div>
-          <div class="watchlist-group-kicker">CATEGORY</div>
-          <h3>Add category</h3>
-        </div>
-        <button class="watchlist-mini" id="watchlistCategoryComposerClose" type="button">CLOSE</button>
-      </div>
-      <div class="watchlist-composer-grid">
-        <label class="watchlist-field">
-          <span>Name</span>
-          <input id="watchlistCategoryNameInput" type="text" maxlength="60" placeholder="Documentaries, Games, Podcasts...">
-        </label>
-        <label class="watchlist-field">
-          <span>Label style</span>
-          <input id="watchlistCategoryKickerInput" type="text" maxlength="20" placeholder="CUSTOM">
-        </label>
-      </div>
-      <div class="watchlist-composer-actions">
-        <div></div>
-        <button class="watchlist-create-btn" id="watchlistCategoryComposerSave" type="button">SAVE CATEGORY</button>
-      </div>
-    </div>
-
-    <div class="watchlist-composer watchlist-category-composer" id="watchlistCategoryDeleteComposer" style="display:none">
-      <div class="watchlist-composer-head">
-        <div>
-          <div class="watchlist-group-kicker">CATEGORY</div>
-          <h3 id="watchlistDeleteTitle">Delete category</h3>
-        </div>
-        <button class="watchlist-mini" id="watchlistCategoryDeleteClose" type="button">CLOSE</button>
-      </div>
-      <input id="watchlistDeleteCategoryKey" type="hidden" value="">
-      <p class="watchlist-delete-copy" id="watchlistDeleteCopy">Choose what to do with the items in this category.</p>
-      <div class="watchlist-delete-options" id="watchlistDeleteOptions" style="display:none">
-        <label class="usage-toggle">
-          <input type="radio" name="watchlistDeleteMode" id="watchlistDeleteModeMove" value="move" checked>
-          <span>move items to another category</span>
-        </label>
-        <label class="usage-toggle">
-          <input type="radio" name="watchlistDeleteMode" id="watchlistDeleteModeDelete" value="delete">
-          <span>delete items with this category</span>
-        </label>
-        <label class="watchlist-field" id="watchlistDeleteMoveField">
-          <span>Move items to</span>
-          <select id="watchlistDeleteTarget"></select>
-        </label>
-      </div>
-      <div class="watchlist-composer-actions">
-        <div></div>
-        <button class="watchlist-create-btn" id="watchlistCategoryDeleteConfirm" type="button">DELETE CATEGORY</button>
-      </div>
-    </div>
-
-    <div class="watchlist-composer" id="watchlistComposer" style="display:none">
-      <div class="watchlist-composer-head">
-        <div>
-          <div class="watchlist-group-kicker">NEW ENTRY</div>
-          <h3 id="watchlistComposerTitle">Add to watchlist</h3>
-        </div>
-        <button class="watchlist-mini" id="watchlistComposerClose" type="button">CLOSE</button>
-      </div>
-      <input id="watchlistEditId" type="hidden" value="">
-      <input id="watchlistOriginalCategory" type="hidden" value="">
-      <div class="watchlist-composer-grid">
-        <label class="watchlist-field">
-          <span>Category</span>
-          <select id="watchlistCategory"></select>
-        </label>
-        <label class="watchlist-field">
-          <span>Title</span>
-          <input id="watchlistTitleInput" type="text" maxlength="180" placeholder="Arcane, Dune, One Piece...">
-        </label>
-        <label class="watchlist-field">
-          <span>Link</span>
-          <input id="watchlistUrlInput" type="text" maxlength="500" placeholder="optional link">
-        </label>
-        <label class="watchlist-field">
-          <span>Priority</span>
-          <select id="watchlistPriorityInput">
-            <option value="high">High</option>
-            <option value="medium" selected>Medium</option>
-            <option value="low">Low</option>
-          </select>
-        </label>
-      </div>
-      <div class="watchlist-composer-actions">
-        <label class="watchlist-checkcard" id="watchlistTrackCard">
-          <input type="checkbox" id="watchlistEpisodicInput">
-          <span class="watchlist-checkbox"></span>
-          <span>track by season / episode</span>
-        </label>
-        <button class="watchlist-create-btn" id="watchlistComposerSave" type="button">SAVE ITEM</button>
-      </div>
-    </div>
-
     <div class="watchlist-groups" id="watchlistGroups"></div>
+    <div class="page-stats" id="watchlistStats"></div>
   </div>
 
   <div class="app-page admin-page" id="adminPage" style="display:none">
-    <div class="watchlist-hero admin-hero">
-      <div>
-        <div class="watchlist-kicker">CONTROL</div>
-        <h2>Admin</h2>
-        <p>Keep global usage, banner controls, and project-wide stats out of the main app flow.</p>
-      </div>
-    </div>
-
     <div class="usage-panel admin-panel admin-panel-page" id="globalUsagePanel" style="display:none">
       <button class="admin-panel-toggle" id="adminPanelToggle" type="button">
         <span>ADMIN PANEL</span>
         <span class="admin-panel-arrow" id="adminPanelArrow">▶</span>
       </button>
       <div class="admin-panel-body" id="adminPanelBody" style="display:none">
-        <div class="usage-panel-row">
-          <span class="usage-panel-key">attachment storage</span>
-          <span class="usage-panel-val" id="globalAttachmentBytes">—</span>
-        </div>
-        <div class="usage-panel-row">
-          <span class="usage-panel-key">total todos</span>
-          <span class="usage-panel-val" id="globalTodoCount">—</span>
-        </div>
-        <div class="usage-panel-row">
-          <span class="usage-panel-key">total attachments</span>
-          <span class="usage-panel-val" id="globalAttachmentCount">—</span>
-        </div>
-        <div class="usage-panel-row">
-          <span class="usage-panel-key">total users</span>
-          <span class="usage-panel-val" id="globalUserCount">—</span>
-        </div>
-        <div class="usage-panel-block">
-          <div class="usage-panel-subtitle">Biggest Storage Users</div>
-          <div class="usage-panel-list" id="topStorageUsers">—</div>
-        </div>
-        <div class="usage-panel-block">
-          <div class="usage-panel-subtitle">File Types</div>
-          <div class="usage-panel-list" id="fileTypeBreakdown">—</div>
+        <div class="usage-panel-rows">
+          <div class="usage-panel-row">
+            <span class="usage-panel-key">attachment storage</span>
+            <span class="usage-panel-val" id="globalAttachmentBytes">—</span>
+          </div>
+          <div class="usage-panel-row">
+            <span class="usage-panel-key">total todos</span>
+            <span class="usage-panel-val" id="globalTodoCount">—</span>
+          </div>
+          <div class="usage-panel-row">
+            <span class="usage-panel-key">total attachments</span>
+            <span class="usage-panel-val" id="globalAttachmentCount">—</span>
+          </div>
+          <div class="usage-panel-row">
+            <span class="usage-panel-key">total users</span>
+            <span class="usage-panel-val" id="globalUserCount">—</span>
+          </div>
+          <div class="usage-panel-block">
+            <div class="usage-panel-subtitle">Biggest Storage Users</div>
+            <div class="usage-panel-list" id="topStorageUsers">—</div>
+          </div>
+          <div class="usage-panel-block">
+            <div class="usage-panel-subtitle">File Types</div>
+            <div class="usage-panel-list" id="fileTypeBreakdown">—</div>
+          </div>
         </div>
         <div class="usage-panel-block">
           <div class="usage-panel-subtitle">Site Notice</div>
@@ -304,16 +265,157 @@
       </div>
     </div>
   </div>
+
+  <div class="app-page settings-page" id="settingsPage" style="display:none">
+    <div class="settings-panel">
+      <div class="settings-panel-title">Appearance</div>
+      <div class="settings-row">
+        <span class="settings-label">Theme</span>
+        <div class="settings-toggle-group" id="themeToggle">
+          <button class="settings-toggle-btn active" data-theme="dark">Dark</button>
+          <button class="settings-toggle-btn" data-theme="light">Light</button>
+        </div>
+      </div>
+      <div class="settings-row">
+        <span class="settings-label">Animations</span>
+        <div class="settings-toggle-group" id="animToggle">
+          <button class="settings-toggle-btn active" data-anim="on">On</button>
+          <button class="settings-toggle-btn" data-anim="off">Off</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-panel">
+      <div class="settings-panel-title">Defaults</div>
+      <div class="settings-row">
+        <span class="settings-label">Task priority</span>
+        <select id="settingsDefaultPriority">
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+        </select>
+      </div>
+      <div class="settings-row">
+        <span class="settings-label">Todo filter</span>
+        <select id="settingsDefaultFilter">
+          <option value="all">All</option>
+          <option value="active">Active</option>
+          <option value="done">Done</option>
+          <option value="high">High Priority</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="settings-panel">
+      <div class="settings-panel-title">Image Compression</div>
+      <div class="settings-row">
+        <span class="settings-label">Enabled</span>
+        <label class="settings-switch">
+          <input type="checkbox" id="settingsCompressEnabled">
+          <span class="settings-switch-slider"></span>
+        </label>
+      </div>
+      <div class="settings-row">
+        <span class="settings-label">Quality</span>
+        <div class="settings-slider-row">
+          <input type="range" id="settingsCompressQuality" min="0.5" max="0.95" step="0.05" value="0.82">
+          <span class="settings-slider-val" id="settingsCompressQualityVal">0.82</span>
+        </div>
+      </div>
+      <div class="settings-row">
+        <span class="settings-label">Max dimension</span>
+        <select id="settingsCompressMaxDimension">
+          <option value="800">800px</option>
+          <option value="1200">1200px</option>
+          <option value="1600" selected>1600px</option>
+          <option value="2000">2000px</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="settings-panel">
+      <div class="settings-panel-title">Destructive Safeguard</div>
+      <div class="settings-row">
+        <span class="settings-label">Require typing "DELETE"</span>
+        <label class="settings-switch">
+          <input type="checkbox" id="settingsDestructiveSafeguard">
+          <span class="settings-switch-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="settings-panel" id="settingsDevPanel">
+      <div class="settings-panel-title">Dev Mode</div>
+      <div class="settings-row">
+        <span class="settings-label">Enable dev mode</span>
+        <label class="settings-switch">
+          <input type="checkbox" id="settingsDevMode">
+          <span class="settings-switch-slider"></span>
+        </label>
+      </div>
+      <div id="settingsDevScenarios" style="display:none">
+        <div class="settings-row">
+          <span class="settings-label">Show drive</span>
+          <label class="settings-switch">
+            <input type="checkbox" id="settingsDevDrive">
+            <span class="settings-switch-slider"></span>
+          </label>
+        </div>
+        <div class="settings-row">
+          <span class="settings-label">Show admin panel</span>
+          <label class="settings-switch">
+            <input type="checkbox" id="settingsDevShowAdmin">
+            <span class="settings-switch-slider"></span>
+          </label>
+        </div>
+        <div class="settings-row">
+          <span class="settings-label">Simulate API errors</span>
+          <label class="settings-switch">
+            <input type="checkbox" id="settingsDevApiErrors">
+            <span class="settings-switch-slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-panel">
+      <div class="settings-panel-title">Data Management</div>
+      <div class="settings-row">
+        <span class="settings-label">Clear all todos</span>
+        <button class="settings-danger-btn" id="settingsClearTodos">CLEAR ALL</button>
+      </div>
+      <div class="settings-row">
+        <span class="settings-label">Clear all Drive files</span>
+        <button class="settings-danger-btn" id="settingsClearDrive">CLEAR ALL</button>
+      </div>
+      <div class="settings-row">
+        <span class="settings-label">Reset all settings</span>
+        <button class="settings-danger-btn" id="settingsReset">RESET</button>
+      </div>
+    </div>
+
+    <div class="settings-panel" id="settingsStoragePanel">
+      <div class="settings-panel-title">Storage</div>
+      <div id="settingsStorageContent"></div>
+    </div>
+
+    <div class="settings-panel">
+      <div class="settings-panel-title">About</div>
+      <div class="settings-row"><span class="settings-label">Version</span><span class="settings-val">1.5.0</span></div>
+      <div class="settings-row"><span class="settings-label">Auth</span><span class="settings-val">Google OAuth via Supabase</span></div>
+    </div>
+  </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="app-pages.js?v=1.5.0"></script>
-<script src="watchlist.js?v=1.5.0"></script>
-<script src="admin.js?v=1.5.0"></script>
-<script src="todo.js?v=1.5.0"></script>
-<script src="script.js?v=1.5.0"></script>
-<script src="drive.js?v=1.5.0"></script>
+<script src="app-pages.js?v=1.18.0"></script>
+<script src="watchlist.js?v=1.18.0"></script>
+<script src="admin.js?v=1.18.0"></script>
+<script src="settings.js?v=1.18.0"></script>
+<script src="todo.js?v=1.18.0"></script>
+<script src="script.js?v=1.18.0"></script>
+<script src="drive.js?v=1.18.0"></script>
 </body>
 </html>
 
