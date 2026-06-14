@@ -19,14 +19,15 @@ function saveDriveState() {
 }
 
 async function loadSyncedDrive() {
-  if (mode !== 'synced' || !currentUser) return;
+  if (typeof _realMode !== 'undefined' && _realMode !== 'synced' || !currentUser) return;
   dot('syncing');
   
   let data;
   try {
     const result = await sb.from('attachments')
       .select('*')
-      .eq('user_id', currentUser.id);
+      .eq('user_id', currentUser.id)
+      .eq('is_standalone', true);
     
     if (result.error) {
       console.warn('load error:', result.error);
@@ -64,7 +65,7 @@ function renderDrive() {
   const empty = document.getElementById('driveEmpty');
   if (!grid || !empty) return;
   
-  if (mode === 'guest') {
+  if (typeof _realMode !== 'undefined' ? _realMode === 'guest' : true) {
     grid.innerHTML = '';
     empty.style.display = 'block';
     empty.innerHTML = '<div class="big">🔒</div><p>drive is synced only - sign in to use</p>';
@@ -125,9 +126,9 @@ async function deleteDriveFile(id) {
   const file = driveFiles.find(f => f.id === id);
   if (!file) return;
   
-  if (!confirm('Delete "' + file.name + '" from Drive?')) return;
+  if (!await showConfirm('Delete "' + esc(file.name) + '" from Drive?')) return;
   
-  if (mode === 'guest') {
+  if (typeof _realMode !== 'undefined' ? _realMode === 'guest' : true) {
     driveFiles = driveFiles.filter(f => f.id !== id);
     saveDriveState();
     toast('deleted');
@@ -147,8 +148,10 @@ async function deleteDriveFile(id) {
   
   await loadSyncedDrive();
   loadDrivePreviews();
-  if (typeof updateStorageMeter === 'function') updateStorageMeter();
-  if (typeof loadGlobalUsage === 'function') loadGlobalUsage();
+  Promise.all([
+    typeof updateStorageMeter === 'function' ? updateStorageMeter() : Promise.resolve(),
+    typeof loadGlobalUsage === 'function' ? loadGlobalUsage().catch(() => {}) : Promise.resolve()
+  ]);
   toast('deleted');
 }
 
@@ -164,8 +167,8 @@ async function uploadDriveFile(rawFile) {
     file = rawFile;
   }
   
-  if (mode === 'guest') {
-    if (file.size > MAX_GUEST_FILE) {
+  if (typeof _realMode !== 'undefined' ? _realMode === 'guest' : true) {
+    if (!devMode && file.size > MAX_GUEST_FILE) {
       toast('guest: max 5MB per file', 'var(--accent2)');
       return;
     }
@@ -187,15 +190,15 @@ async function uploadDriveFile(rawFile) {
     return;
   }
 
-  const MAX_FILE = 50 * 1024 * 1024;
-  if (file.size > MAX_FILE) {
+  if (file.size > MAX_SYNC_FILE) {
     toast('max 50MB per file', 'var(--accent2)');
     return;
   }
 
-  const ext = file.name.split('.').pop();
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const ext = safeName.split('.').pop();
   const fileId = Date.now() + '_' + Math.random().toString(36).slice(2,7);
-  const path = currentUser.id + '/drive/' + fileId + '_' + file.name;
+  const path = currentUser.id + '/drive/' + fileId + '_' + safeName;
   
   dot('syncing');
   
@@ -224,7 +227,8 @@ async function uploadDriveFile(rawFile) {
       size: file.size,
       mime_type: file.type,
       path: path,
-      todo_id: '00000000-0000-0000-0000-000000000000'
+      todo_id: '00000000-0000-0000-0000-000000000000',
+      is_standalone: true
     });
   } catch (e) {
     console.warn('db insert error:', e);
@@ -245,13 +249,15 @@ async function uploadDriveFile(rawFile) {
   dot('ok');
   await loadSyncedDrive();
   loadDrivePreviews();
-  if (typeof updateStorageMeter === 'function') updateStorageMeter();
-  if (typeof loadGlobalUsage === 'function') loadGlobalUsage();
+  Promise.all([
+    typeof updateStorageMeter === 'function' ? updateStorageMeter() : Promise.resolve(),
+    typeof loadGlobalUsage === 'function' ? loadGlobalUsage().catch(() => {}) : Promise.resolve()
+  ]);
   toast('uploaded ' + file.name);
 }
 
 function exportDrive() {
-  if (mode === 'guest') {
+  if (typeof _realMode !== 'undefined' ? _realMode === 'guest' : true) {
     const blob = new Blob([JSON.stringify({ version: 1, exported: new Date().toISOString(), files: driveFiles }, null, 2)], { type: 'application/json' });
     const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'drive_' + new Date().toISOString().slice(0,10) + '.json' });
     a.click();
@@ -274,7 +280,7 @@ async function importDriveFile(file) {
       const data = JSON.parse(ev.target.result);
       const importedFiles = Array.isArray(data.files) ? data.files : [];
       
-      if (mode === 'guest') {
+      if (typeof _realMode !== 'undefined' ? _realMode === 'guest' : true) {
         const existingIds = new Set(driveFiles.map(f => f.id));
         const newFiles = importedFiles.filter(f => !existingIds.has(f.id));
         driveFiles = [...newFiles, ...driveFiles];
@@ -356,11 +362,11 @@ if (driveGrid) {
 }
 
 async function loadDrivePreviews() {
-  const grid = document.getElementById('driveGrid');
-  if (!grid) return;
+  if (!driveGrid) return;
   
-  for (const img of grid.querySelectorAll('.drive-card-img[data-path]')) {
-    const url = await getSignedUrl(img.dataset.path);
-    if (url) img.innerHTML = '<img src="' + url + '" style="width:100%;height:100%;object-fit:cover;">';
-  }
+  const imgs = [...driveGrid.querySelectorAll('.drive-card-img[data-path]')];
+  const urls = await Promise.all(imgs.map(img => getSignedUrl(img.dataset.path)));
+  urls.forEach((url, i) => {
+    if (url) imgs[i].innerHTML = '<img src="' + url + '" loading="lazy" style="width:100%;height:100%;object-fit:cover;">';
+  });
 }
