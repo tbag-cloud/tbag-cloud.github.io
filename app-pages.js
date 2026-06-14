@@ -5,10 +5,19 @@ function closeAppMenu() {
 }
 
 function updatePageMenuState() {
+  const driveHidden = mode === 'guest' || (typeof devScenario !== 'undefined' && !devScenario.drive);
   document.querySelectorAll('.app-menu-item').forEach(btn => {
-    if (btn.dataset.page === 'drive' && mode === 'guest') {
+    if (btn.dataset.page === 'drive' && driveHidden) {
       btn.style.display = 'none';
     } else {
+      btn.style.display = '';
+    }
+    btn.classList.toggle('active', btn.dataset.page === currentPage);
+  });
+  document.querySelectorAll('.sidebar-btn[data-page]').forEach(btn => {
+    if (btn.dataset.page === 'drive' && driveHidden) {
+      btn.style.display = 'none';
+    } else if (btn.id !== 'sidebarAdmin') {
       btn.style.display = '';
     }
     btn.classList.toggle('active', btn.dataset.page === currentPage);
@@ -17,16 +26,13 @@ function updatePageMenuState() {
 
 function updateAdminAccess() {
   const adminBtn = document.getElementById('menuPageAdmin');
-  if (!adminBtn) return;
+  const sidebarAdmin = document.getElementById('sidebarAdmin');
   const allowed = mode === 'synced' && isAdminUser();
-  adminBtn.style.display = allowed ? 'block' : 'none';
+  if (adminBtn) adminBtn.style.display = allowed ? 'block' : 'none';
+  if (sidebarAdmin) sidebarAdmin.style.display = allowed ? '' : 'none';
   if (!allowed && currentPage === 'admin') {
     currentPage = 'todo';
   }
-}
-
-function updateWatchlistStats() {
-  document.getElementById('statsLabel').textContent = '';
 }
 
 function pageFromHash(hash = window.location.hash) {
@@ -34,6 +40,7 @@ function pageFromHash(hash = window.location.hash) {
   if (clean === 'drive') return 'drive';
   if (clean === 'watchlist') return 'watchlist';
   if (clean === 'admin') return 'admin';
+  if (clean === 'settings') return 'settings';
   return 'todo';
 }
 
@@ -46,21 +53,31 @@ function syncPageHash() {
 
 function setPage(page, { updateHash = true } = {}) {
   const adminAllowed = mode === 'synced' && isAdminUser();
-  const driveAllowed = mode === 'synced';
-  currentPage = page === 'watchlist'
-    ? 'watchlist'
-    : page === 'drive' && driveAllowed
-      ? 'drive'
-      : page === 'admin' && adminAllowed
-        ? 'admin'
-        : 'todo';
+  const driveAllowed = mode === 'synced' && (typeof devScenario === 'undefined' || devScenario.drive);
+  if (page === 'settings') {
+    currentPage = 'settings';
+  } else if (page === 'watchlist') {
+    currentPage = 'watchlist';
+  } else if (page === 'drive' && driveAllowed) {
+    currentPage = 'drive';
+  } else if (page === 'admin' && adminAllowed) {
+    currentPage = 'admin';
+  } else {
+    currentPage = 'todo';
+  }
   document.getElementById('todoPage').style.display = currentPage === 'todo' ? 'block' : 'none';
   document.getElementById('drivePage').style.display = currentPage === 'drive' ? 'block' : 'none';
   document.getElementById('watchlistPage').style.display = currentPage === 'watchlist' ? 'block' : 'none';
   document.getElementById('adminPage').style.display = currentPage === 'admin' ? 'block' : 'none';
+  document.getElementById('settingsPage').style.display = currentPage === 'settings' ? 'block' : 'none';
   document.getElementById('todoToolbar').style.display = currentPage === 'todo' ? 'flex' : 'none';
+  // Show/hide hero sections
+  ['heroTodo', 'heroDrive', 'heroWatchlist', 'heroSettings', 'heroAdmin'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = id === 'hero' + currentPage.charAt(0).toUpperCase() + currentPage.slice(1) ? '' : 'none';
+  });
   const title = document.querySelector('h1 span');
-  if (title) title.textContent = currentPage === 'todo' ? 'TODO' : currentPage === 'drive' ? 'DRIVE' : currentPage === 'watchlist' ? 'WATCHLIST' : 'ADMIN';
+  if (title) title.textContent = currentPage === 'todo' ? 'TODO' : currentPage === 'drive' ? 'DRIVE' : currentPage === 'watchlist' ? 'WATCHLIST' : currentPage === 'settings' ? 'SETTINGS' : 'ADMIN';
   updatePageMenuState();
   closeAppMenu();
   if (updateHash) syncPageHash();
@@ -68,11 +85,14 @@ function setPage(page, { updateHash = true } = {}) {
   else if (currentPage === 'drive') { 
     loadSyncedDrive().catch(err => { console.warn('drive load error:', err); toast('drive load failed', 'var(--danger)'); });
   }
-  else updateWatchlistStats();
+  else if (currentPage === 'settings') {
+    if (typeof renderSettingsPage === 'function') renderSettingsPage();
+  }
   
-  // Always update storage meter and global usage on page change
+  // Always update storage meter, global usage, and site notice on page change
+  updateStorageMeter();
   if (mode === 'synced') {
-    if (typeof updateStorageMeter === 'function') updateStorageMeter();
     if (typeof loadGlobalUsage === 'function') loadGlobalUsage().catch(err => { console.warn('global usage error:', err); });
+    if (typeof loadSiteNotice === 'function') loadSiteNotice().catch(() => {});
   }
 }
