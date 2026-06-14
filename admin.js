@@ -1,4 +1,7 @@
-function isAdminUser() { return !!currentUser?.email && ADMIN_EMAILS.includes(currentUser.email.toLowerCase()); }
+function isAdminUser() {
+  if (typeof devMode !== 'undefined' && devMode && typeof devScenario !== 'undefined' && devScenario.showAdmin) return true;
+  return !!currentUser?.email && ADMIN_EMAILS.includes(currentUser.email.toLowerCase());
+}
 
 function renderUsageList(elId, rows, emptyText) {
   const el = document.getElementById(elId);
@@ -10,6 +13,27 @@ function renderUsageList(elId, rows, emptyText) {
   el.innerHTML = rows.map(row =>
     '<div class="row"><span class="k">' + esc(row.key) + '</span><span class="v">' + esc(row.value) + '</span></div>'
   ).join('');
+}
+
+function repositionSiteBanner() {
+  const banner = document.getElementById('siteBanner');
+  if (!banner || banner.style.display === 'none') return;
+  const isDesktop = window.innerWidth >= 900;
+  const sidebarInner = document.querySelector('.sidebar-inner');
+  const appScreen = document.getElementById('appScreen');
+  const authScreen = document.getElementById('authScreen');
+  if (!sidebarInner || !appScreen || !authScreen) return;
+  if (isDesktop) {
+    const foot = document.querySelector('.sidebar-foot');
+    if (banner.parentNode === sidebarInner) return;
+    banner.classList.remove('sb-main');
+    sidebarInner.insertBefore(banner, foot);
+  } else {
+    const target = authScreen.style.display !== 'none' ? authScreen : appScreen;
+    if (banner.parentNode === target.parentNode) return;
+    banner.classList.add('sb-main');
+    target.parentNode.insertBefore(banner, target);
+  }
 }
 
 function updateSiteBanner() {
@@ -24,6 +48,7 @@ function updateSiteBanner() {
   document.getElementById('siteBannerTitle').textContent = siteNotice.maintenance ? 'MAINTENANCE NOTICE' : 'ANNOUNCEMENT';
   document.getElementById('siteBannerText').textContent = siteNotice.message;
   banner.style.display = 'block';
+  repositionSiteBanner();
 }
 
 function updateAdminPanelState() {
@@ -37,27 +62,33 @@ function updateAdminPanelState() {
 function updateGlobalUsagePanel() {
   const panel = document.getElementById('globalUsagePanel');
   if (!panel) return;
-  if (mode !== 'synced' || !isAdminUser() || !globalUsage) {
+  if (mode !== 'synced' || !isAdminUser()) {
     panel.style.display = 'none';
     return;
   }
-  document.getElementById('globalAttachmentBytes').textContent = fmtSize(globalUsage.total_attachment_bytes || 0);
-  document.getElementById('globalTodoCount').textContent = fmtCount(globalUsage.total_todo_count || 0);
-  document.getElementById('globalAttachmentCount').textContent = fmtCount(globalUsage.total_attachment_count || 0);
-  document.getElementById('globalUserCount').textContent = fmtCount(globalUsage.total_user_count || 0);
-  renderUsageList('topStorageUsers', (globalUsage.top_storage_users || []).map(user => ({
-    key: user.email || user.user_id || 'unknown',
-    value: fmtSize(user.total_bytes || 0) + ' · ' + fmtCount(user.attachment_count || 0) + ' files'
-  })), 'No attachment data');
-  renderUsageList('fileTypeBreakdown', (globalUsage.file_type_breakdown || []).map(type => ({
-    key: type.mime_type || 'unknown',
-    value: fmtCount(type.file_count || 0) + ' · ' + fmtSize(type.total_bytes || 0)
-  })), 'No file types yet');
+  panel.style.display = 'block';
+  // Usage data section
+  const usageRows = panel.querySelector('.usage-panel-rows');
+  if (usageRows) usageRows.style.display = globalUsage ? '' : 'none';
+  if (globalUsage) {
+    document.getElementById('globalAttachmentBytes').textContent = fmtSize(globalUsage.total_attachment_bytes || 0);
+    document.getElementById('globalTodoCount').textContent = fmtCount(globalUsage.total_todo_count || 0);
+    document.getElementById('globalAttachmentCount').textContent = fmtCount(globalUsage.total_attachment_count || 0);
+    document.getElementById('globalUserCount').textContent = fmtCount(globalUsage.total_user_count || 0);
+    renderUsageList('topStorageUsers', (globalUsage.top_storage_users || []).map(user => ({
+      key: user.email || user.user_id || 'unknown',
+      value: fmtSize(user.total_bytes || 0) + ' · ' + fmtCount(user.attachment_count || 0) + ' files'
+    })), 'No attachment data');
+    renderUsageList('fileTypeBreakdown', (globalUsage.file_type_breakdown || []).map(type => ({
+      key: type.mime_type || 'unknown',
+      value: fmtCount(type.file_count || 0) + ' · ' + fmtSize(type.total_bytes || 0)
+    })), 'No file types yet');
+  }
+  // Notice form is always shown for admins
   document.getElementById('noticeEnabled').checked = !!siteNotice?.enabled;
   document.getElementById('noticeText').value = siteNotice?.message || '';
   document.getElementById('noticeModeAnnouncement').checked = !siteNotice?.maintenance;
   document.getElementById('noticeModeMaintenance').checked = !!siteNotice?.maintenance;
-  panel.style.display = 'block';
   updateAdminPanelState();
 }
 
