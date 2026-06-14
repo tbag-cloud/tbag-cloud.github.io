@@ -2,14 +2,22 @@
 const SUPA_URL = 'https://hxkjwebubmdqjzwmnvrh.supabase.co';
 const SUPA_KEY = 'sb_publishable_iZkIPeb7P6Eb8RCXC1hNOQ_GhIUlnj0';
 const MAX_GUEST_FILE = 5 * 1024 * 1024;
-const MAX_SYNC_FILE  = 1024 * 1024 * 1024;
+const MAX_SYNC_FILE  = 50 * 1024 * 1024;
 const SYNC_STORAGE_LIMIT = 1024 * 1024 * 1024;
-const DATABASE_LIMIT_ESTIMATE = 500 * 1024 * 1024;
 const ADMIN_EMAILS = ['themiplayz1@gmail.com'];
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
-let mode = 'guest';
+let _realMode = 'guest';
+let devMode = false;
+let devScenario = { drive: true, fullStorage: false, showAdmin: false, apiErrors: false };
+
+Object.defineProperty(window, 'mode', {
+  get() { return devMode ? 'synced' : _realMode; },
+  set(v) { _realMode = v; },
+  configurable: true
+});
+
 let currentUser = null;
 let todos = [];
 let attMap = {};
@@ -17,9 +25,16 @@ let filter = 'all';
 let searchQ = '';
 let editingId = null;
 let editingValue = '';
+let noteEditingId = null;
 let confirmDeleteId = null;
 let expandedIds = new Set();
 let openAttIds = new Set();
+let bulkMode = false;
+let bulkSelection = new Set();
+let focusedItemId = null;
+let undoStack = [];
+let currentTagFilter = '';
+const MAX_UNDO = 20;
 
 // Restore editing state from session storage (survives tab backgrounding)
 try {
@@ -56,15 +71,19 @@ let adminPanelOpen = false;
 let currentPage = 'todo';
 let watchlistData = { manga: [], movies: [], series: [], anime: [] };
 let watchlistCategories = [];
-let watchlistExpanded = new Set();
-let watchlistComposerOpen = false;
-let watchlistComposerMode = 'add';
 let watchlistSyncAvailable = true;
+
+// Cached DOM refs (script.js level, used in updateStorageMeter etc.)
+const _elStorageBar = document.getElementById('storageBar');
+const _elStorageFill = document.getElementById('storageFill');
+const _elStorageLabel = document.getElementById('storageLabel');
+const _elStorageWarning = document.getElementById('storageWarning');
+const _elBtnClearAtts = document.getElementById('btnClearAtts');
 
 const LS_TODOS = 'todo_v3_todos';
 const LS_ATTS  = 'todo_v3_atts';
+const LS_GUEST = 'todo_v3_guest';
 const LS_WATCHLIST = 'watchlist_v1';
-const LS_WATCHLIST_CATEGORIES = 'watchlist_v1_categories';
 const DEFAULT_WATCHLIST_CATEGORIES = [
   { key: 'manga', label: 'Manga', kicker: 'READING' },
   { key: 'movies', label: 'Films', kicker: 'MOVIES' },
@@ -87,34 +106,73 @@ const fmtCount = n => new Intl.NumberFormat('en-GB').format(n || 0);
 
 // Normalize DB row → JS object
 function normalize(t) {
+  const m = t.metadata || {};
   return {
     id: t.id,
     text: t.text || '',
     desc: t.description || t.desc || '',
     priority: t.priority || 'medium',
     done: !!t.done,
-    created: t.created_at || t.created || new Date().toISOString()
+    created: t.created_at || t.created || new Date().toISOString(),
+    archived: !!m.archived,
+    due: m.due || null,
+    tags: Array.isArray(m.tags) ? m.tags : [],
+    repeat: m.repeat || null,
+    subtasks: Array.isArray(m.subtasks) ? m.subtasks : []
+  };
+}
+
+function metaPayload(t) {
+  return {
+    archived: !!t.archived,
+    due: t.due || null,
+    tags: Array.isArray(t.tags) ? t.tags : [],
+    repeat: t.repeat || null,
+    subtasks: Array.isArray(t.subtasks) ? t.subtasks : []
   };
 }
 
 let toastTimer;
+let undoToastTimer;
+const _syncDot = document.getElementById('syncDot');
+const _sidebarSyncDot = document.getElementById('sidebarSyncDot');
 function toast(msg, col) {
   const el = document.getElementById('toast');
   el.textContent = '// ' + msg;
+  el.className = 'toast show';
   el.style.color = col || 'var(--green)';
-  el.classList.add('show');
   clearTimeout(toastTimer);
+  clearTimeout(undoToastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
 }
+function undoableToast(msg) {
+  const el = document.getElementById('toast');
+  el.className = 'toast show clickable';
+  el.style.color = 'var(--accent)';
+  el.innerHTML = '// ' + esc(msg) + ' <button class="toast-undo">UNDO</button>';
+  el.querySelector('.toast-undo').onclick = () => {
+    el.classList.remove('show');
+    clearTimeout(undoToastTimer);
+    popUndo();
+  };
+  clearTimeout(undoToastTimer);
+  undoToastTimer = setTimeout(() => el.classList.remove('show'), 4000);
+}
 
-function dot(s) { document.getElementById('syncDot').className = 'sync-dot ' + s; }
+function dot(s) {
+  if (_syncDot) _syncDot.className = 'sync-dot ' + s;
+  if (_sidebarSyncDot) _sidebarSyncDot.className = 'sync-dot ' + s;
+}
 
 // ── IMAGE COMPRESS ────────────────────────────────────────────────────────────
-async function compressImage(file, maxW=1600, quality=0.82) {
+async function compressImage(file) {
   return new Promise(resolve => {
     if (!file || !file.type) { resolve(file); return; }
     if (!file.type.startsWith('image/')) { resolve(file); return; }
+    if (!settings.compressEnabled) { resolve(file); return; }
     
+    const quality = settings.compressQuality;
+    const maxW = settings.compressMaxDimension;
     const img = new Image();
     const url = URL.createObjectURL(file);
     
@@ -145,55 +203,148 @@ async function compressImage(file, maxW=1600, quality=0.82) {
 
 // ── STORAGE METER ─────────────────────────────────────────────────────────────
 function updateStorageMeter() {
-  const bar = document.getElementById('storageBar');
-  const fill = document.getElementById('storageFill');
-  const label = document.getElementById('storageLabel');
-  const dbBar = document.getElementById('dbStorageBar');
-  const dbFill = document.getElementById('dbStorageFill');
-  const dbLabel = document.getElementById('dbStorageLabel');
-  bar.className = 'storage-bar visible';
+  if (!_elStorageBar || !_elStorageFill || !_elStorageLabel) return;
+  _elStorageBar.className = 'storage-bar visible';
 
-  if (mode === 'guest') {
-    document.getElementById('btnClearAtts').style.display = 'none';
-    dbBar.className = 'storage-bar';
+  if (_realMode === 'guest') {
+    if (_elBtnClearAtts) _elBtnClearAtts.style.display = 'none';
     globalUsage = null;
     updateGlobalUsagePanel();
     let bytes = 0;
     try { bytes = (localStorage.getItem(LS_TODOS)||'').length + (localStorage.getItem(LS_ATTS)||'').length; } catch {}
-    const maxGuest = 5000000;
-    const pct = Math.min(100, (bytes / maxGuest) * 100);
-    fill.className = 'storage-fill' + (pct > 80 ? ' full' : pct > 60 ? ' warn' : '');
-    fill.style.width = pct.toFixed(1) + '%';
-    label.textContent = 'local storage: ' + fmtSize(bytes) + ' / ~5MB' + (pct > 80 ? ' ⚠️' : '');
+    const max = devMode ? SYNC_STORAGE_LIMIT : 5000000;
+    const pct = Math.min(100, (bytes / max) * 100);
+    _elStorageFill.className = 'storage-fill' + (pct > 80 ? ' full' : pct > 60 ? ' warn' : '');
+    _elStorageFill.style.width = pct.toFixed(1) + '%';
+    if (devMode) {
+      _elStorageLabel.textContent = 'supabase storage: ' + fmtSize(bytes) + ' / 1GB (' + pct.toFixed(0) + '%)';
+    } else {
+      _elStorageLabel.textContent = 'local storage: ' + fmtSize(bytes) + ' / ~5MB' + (pct > 80 ? ' ⚠️' : '');
+    }
+    if (_elStorageWarning) {
+      let warnMsg = '';
+      if (devMode) {
+        const dpct = bytes / SYNC_STORAGE_LIMIT;
+        if (dpct > 0.8) warnMsg = '⚠️ Supabase storage is nearly full (' + fmtSize(bytes) + ' / 1GB). Clean up old files.';
+        else if (dpct > 0.6) warnMsg = '⚡ Supabase storage is getting full (' + fmtSize(bytes) + ' / 1GB).';
+      } else {
+        const dpct = bytes / 5000000;
+        if (dpct > 0.8) warnMsg = '⚠️ Local storage is nearly full (' + fmtSize(bytes) + ' / ~5MB). Consider clearing completed items or switching to synced mode.';
+        else if (dpct > 0.6) warnMsg = '⚡ Local storage is getting full (' + fmtSize(bytes) + ' / ~5MB).';
+      }
+      _elStorageWarning.textContent = warnMsg;
+      _elStorageWarning.className = 'storage-warning' + (warnMsg ? ' show' : '');
+    }
   } else {
-    // Query all attachments from DB (like admin does)
     sb.from('attachments').select('size').eq('user_id', currentUser.id).then(result => {
       const bytes = result.data ? result.data.reduce((s,a) => s + (a.size||0), 0) : 0;
       const pct = Math.min(100, (bytes / SYNC_STORAGE_LIMIT) * 100);
-      fill.className = 'storage-fill' + (pct > 80 ? ' full' : pct > 60 ? ' warn' : '');
-      fill.style.width = pct.toFixed(1) + '%';
-      label.textContent = 'supabase storage: ' + fmtSize(bytes) + ' / 1GB (' + pct.toFixed(0) + '%)';
+      _elStorageFill.className = 'storage-fill' + (pct > 80 ? ' full' : pct > 60 ? ' warn' : '');
+      _elStorageFill.style.width = pct.toFixed(1) + '%';
+      _elStorageLabel.textContent = 'supabase storage: ' + fmtSize(bytes) + ' / 1GB (' + pct.toFixed(0) + '%)';
     }).catch(() => {
-      // Fallback to attMap
       const bytes = Object.values(attMap).flat().reduce((s,a) => s + (a.size||0), 0);
       const pct = Math.min(100, (bytes / SYNC_STORAGE_LIMIT) * 100);
-      fill.className = 'storage-fill' + (pct > 80 ? ' full' : pct > 60 ? ' warn' : '');
-      fill.style.width = pct.toFixed(1) + '%';
-      label.textContent = 'supabase storage: ' + fmtSize(bytes) + ' / 1GB (' + pct.toFixed(0) + '%)';
+      _elStorageFill.className = 'storage-fill' + (pct > 80 ? ' full' : pct > 60 ? ' warn' : '');
+      _elStorageFill.style.width = pct.toFixed(1) + '%';
+      _elStorageLabel.textContent = 'supabase storage: ' + fmtSize(bytes) + ' / 1GB (' + pct.toFixed(0) + '%)';
     });
 
-    const dbBytes = new Blob([JSON.stringify(todos)]).size;
-    const dbPct = Math.min(100, (dbBytes / DATABASE_LIMIT_ESTIMATE) * 100);
-    dbBar.className = 'storage-bar visible';
-    dbFill.className = 'storage-fill' + (dbPct > 80 ? ' full' : dbPct > 60 ? ' warn' : '');
-    dbFill.style.width = dbPct.toFixed(1) + '%';
-    dbLabel.textContent = 'database estimate (todos): ' + fmtSize(dbBytes) + ' / ~500MB (' + dbPct.toFixed(0) + '%)';
-
-    // Show clear-done-attachments button if relevant
     const doneIds = new Set(todos.filter(t=>t.done).map(t=>t.id));
     const hasDoneAtts = Object.keys(attMap).some(id => doneIds.has(id) && attMap[id].length > 0);
-    document.getElementById('btnClearAtts').style.display = hasDoneAtts ? 'inline-block' : 'none';
+    if (_elBtnClearAtts) _elBtnClearAtts.style.display = hasDoneAtts ? 'inline-block' : 'none';
     updateGlobalUsagePanel();
+    if (_elStorageWarning) {
+      const attBytes = Object.values(attMap).flat().reduce((s,a) => s + (a.size||0), 0);
+      const driveBytes = (typeof driveFiles !== 'undefined' ? driveFiles : []).reduce((s,f) => s + (f.size||0), 0);
+      const pct = (attBytes + driveBytes) / SYNC_STORAGE_LIMIT;
+      let warnMsg = '';
+      if (pct > 0.8) warnMsg = '⚠️ Supabase storage is nearly full (' + fmtSize(attBytes + driveBytes) + ' / 1GB). Clean up old files.';
+      else if (pct > 0.6) warnMsg = '⚡ Supabase storage is getting full (' + fmtSize(attBytes + driveBytes) + ' / 1GB).';
+      _elStorageWarning.textContent = warnMsg;
+      _elStorageWarning.className = 'storage-warning' + (warnMsg ? ' show' : '');
+    }
+  }
+  updatePageStats();
+  updateSidebarCounts();
+  updateSidebarStorage();
+}
+
+function updatePageStats() {
+  const fmt = b => {
+    if (b >= 1048576) return (b/1048576).toFixed(1) + 'MB';
+    if (b >= 1024) return (b/1024).toFixed(1) + 'KB';
+    return b + 'B';
+  };
+  const attCount = Object.values(window.attMap || {}).flat().length;
+  const driveCount = (typeof driveFiles !== 'undefined' ? driveFiles : []).length;
+  const todoCount = (typeof todos !== 'undefined' ? todos : []).length;
+  const wlItems = typeof watchlistData !== 'undefined' ? Object.values(watchlistData).flat().length : 0;
+  const wlCats = typeof watchlistCategories !== 'undefined' ? watchlistCategories.length : 0;
+
+  let todoStats = '';
+  if (_realMode === 'guest') {
+    let bytes = 0;
+    try { bytes = (localStorage.getItem(LS_TODOS)||'').length + (localStorage.getItem(LS_ATTS)||'').length; } catch {}
+    todoStats = todoCount + ' item' + (todoCount===1?'':'s') + ' · ' + attCount + ' attachment' + (attCount===1?'':'s') + ' · ' + fmt(bytes);
+  } else {
+    const attBytes = Object.values(window.attMap || {}).flat().reduce((s,a) => s + (a.size||0), 0);
+    const driveBytes = driveFiles.reduce((s,f) => s + (f.size||0), 0);
+    todoStats = todoCount + ' item' + (todoCount===1?'':'s') + ' · ' + attCount + ' attachment' + (attCount===1?'':'s') + ' · ' + fmt(attBytes + driveBytes);
+  }
+  const ts = document.getElementById('todoStats');
+  if (ts) ts.textContent = todoStats;
+
+  const ds = document.getElementById('driveStats');
+  if (ds) ds.textContent = driveCount + ' file' + (driveCount===1?'':'s') + ' · ' + fmt(driveFiles.reduce((s,f) => s + (f.size||0), 0));
+
+  const ws = document.getElementById('watchlistStats');
+  if (ws) ws.textContent = wlItems + ' item' + (wlItems===1?'':'s') + ' across ' + wlCats + ' categor' + (wlCats===1?'y':'ies');
+}
+
+function updateSidebarCounts() {
+  const todoCount = (typeof todos !== 'undefined' ? todos : []).length;
+  const driveCount = (typeof driveFiles !== 'undefined' ? driveFiles : []).length;
+  const wlTotal = typeof watchlistData !== 'undefined' ? Object.values(watchlistData).flat().length : 0;
+  const tc = document.getElementById('navCountTodo');
+  if (tc) tc.textContent = todoCount || '';
+  const dc = document.getElementById('navCountDrive');
+  if (dc) dc.textContent = driveCount || '';
+  const wc = document.getElementById('navCountWatchlist');
+  if (wc) wc.textContent = wlTotal || '';
+}
+
+function updateSidebarStorage() {
+  const el = document.getElementById('sidebarStorage');
+  const fill = document.getElementById('sidebarStorageFill');
+  const label = document.getElementById('sidebarStorageLabel');
+  if (!el || !fill || !label) return;
+  if (_realMode === 'guest') {
+    let bytes = 0;
+    try { bytes = (localStorage.getItem(LS_TODOS)||'').length + (localStorage.getItem(LS_ATTS)||'').length; } catch {}
+    if (devMode) {
+      const pct = Math.min(100, (bytes / SYNC_STORAGE_LIMIT) * 100);
+      el.style.display = 'block';
+      fill.style.width = pct.toFixed(1) + '%';
+      fill.className = 'sidebar-storage-fill' + (pct > 80 ? ' full' : pct > 60 ? ' warn' : '');
+      label.textContent = 'storage ' + fmtSize(bytes) + ' / 1GB';
+    } else {
+      const max = 5000000;
+      const pct = Math.min(100, (bytes / max) * 100);
+      el.style.display = 'block';
+      fill.style.width = pct.toFixed(1) + '%';
+      fill.className = 'sidebar-storage-fill' + (pct > 80 ? ' full' : pct > 60 ? ' warn' : '');
+      label.textContent = 'local ' + fmtSize(bytes) + ' / ~5MB';
+    }
+  } else {
+    const attBytes = Object.values(attMap || {}).flat().reduce((s,a) => s + (a.size||0), 0);
+    const driveBytes = (typeof driveFiles !== 'undefined' ? driveFiles : []).reduce((s,f) => s + (f.size||0), 0);
+    const max = 1073741824;
+    const pct = Math.min(100, ((attBytes + driveBytes) / max) * 100);
+    el.style.display = 'block';
+    fill.style.width = pct.toFixed(1) + '%';
+    fill.className = 'sidebar-storage-fill' + (pct > 80 ? ' full' : pct > 60 ? ' warn' : '');
+    label.textContent = 'storage ' + fmtSize(attBytes + driveBytes) + ' / 1GB';
   }
 }
 
@@ -205,6 +356,8 @@ sb.auth.onAuthStateChange((event, session) => {
 
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('appScreen').style.display = 'block';
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) sidebar.style.display = '';
 
     const badge = document.getElementById('modeBadge');
     badge.textContent = 'SYNCED'; badge.className = 'mode-badge synced-mode';
@@ -214,15 +367,23 @@ sb.auth.onAuthStateChange((event, session) => {
 
     const av = document.getElementById('userAvatar');
     const ph = document.getElementById('avatarPh');
+    const sav = document.getElementById('sidebarAvatar');
+    const sph = document.getElementById('sidebarAvatarPh');
     if (session.user.user_metadata?.avatar_url) {
-      av.src = session.user.user_metadata.avatar_url;
-      av.style.display = 'inline-block'; ph.style.display = 'none';
+      const url = session.user.user_metadata.avatar_url;
+      av.src = url; av.style.display = 'inline-block'; ph.style.display = 'none';
+      if (sav) { sav.src = url; sav.style.display = 'inline-block'; if (sph) sph.style.display = 'none'; }
     } else {
-      av.removeAttribute('src');
-      av.style.display = 'none';
-      ph.style.display = 'flex';
+      av.removeAttribute('src'); av.style.display = 'none'; ph.style.display = 'flex';
       ph.textContent = (session.user.email||'?')[0].toUpperCase();
+      if (sav) { sav.removeAttribute('src'); sav.style.display = 'none'; if (sph) { sph.style.display = 'flex'; sph.textContent = (session.user.email||'?')[0].toUpperCase(); } }
     }
+    const sBadge = document.getElementById('sidebarModeBadge');
+    if (sBadge) { sBadge.textContent = 'SYNCED'; sBadge.className = 'mode-badge synced-mode'; }
+    const sEmail = document.getElementById('sidebarUserEmail');
+    if (sEmail) sEmail.textContent = session.user.email || '';
+    const sso = document.getElementById('sidebarSignOutBtn');
+    if (sso) sso.style.display = 'inline-block';
     updateAdminAccess();
 
     // Avoid issuing more Supabase calls directly inside the auth callback.
@@ -232,30 +393,69 @@ sb.auth.onAuthStateChange((event, session) => {
         toast('load error: ' + error.message, 'var(--danger)');
       });
       setPage(pageFromHash(), { updateHash: false });
+      if (typeof repositionSiteBanner === 'function') repositionSiteBanner();
     }, 0);
 
   } else {
+    if (localStorage.getItem(LS_GUEST) === '1') {
+      enterGuestMode();
+      return;
+    }
     mode = 'guest'; currentUser = null;
     updateAdminAccess();
     document.getElementById('appScreen').style.display = 'none';
     document.getElementById('authScreen').style.display = 'block';
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) sidebar.style.display = 'none';
+    if (typeof repositionSiteBanner === 'function') repositionSiteBanner();
+    const sBadge = document.getElementById('sidebarModeBadge');
+    if (sBadge) { sBadge.textContent = 'GUEST'; sBadge.className = 'mode-badge guest-mode'; }
+    const sEmail = document.getElementById('sidebarUserEmail');
+    if (sEmail) sEmail.textContent = '';
+    const sso = document.getElementById('sidebarSignOutBtn');
+    if (sso) sso.style.display = 'none';
+    const sav = document.getElementById('sidebarAvatar');
+    if (sav) { sav.removeAttribute('src'); sav.style.display = 'none'; }
+    const sph = document.getElementById('sidebarAvatarPh');
+    if (sph) { sph.style.display = 'flex'; sph.textContent = '?'; }
   }
 });
 
-document.getElementById('btnGoogle').onclick = function() {
+document.getElementById('btnGoogle').addEventListener('click', () => {
   window.location.href = 'https://hxkjwebubmdqjzwmnvrh.supabase.co/auth/v1/authorize?provider=google&redirect_to=' + encodeURIComponent(window.location.href);
-};
-document.getElementById('btnSignOut').addEventListener('click', async () => {
-  const { error } = await sb.auth.signOut();
-  if (error) toast('sign out failed: ' + error.message, 'var(--danger)');
 });
+async function handleSignOut() {
+  const { error } = await sb.auth.signOut();
+  localStorage.removeItem(LS_GUEST);
+  if (error) toast('sign out failed: ' + error.message, 'var(--danger)');
+  if (typeof repositionSiteBanner === 'function') repositionSiteBanner();
+}
+document.getElementById('btnSignOut').addEventListener('click', handleSignOut);
+document.getElementById('sidebarSignOutBtn').addEventListener('click', handleSignOut);
+function handleSwitchAccount() {
+  localStorage.removeItem(LS_GUEST);
+  if (_realMode === 'synced') {
+    sb.auth.signOut();
+  } else {
+    document.getElementById('appScreen').style.display = 'none';
+    document.getElementById('authScreen').style.display = 'block';
+    const sb2 = document.getElementById('sidebar');
+    if (sb2) sb2.style.display = 'none';
+    if (typeof repositionSiteBanner === 'function') repositionSiteBanner();
+  }
+}
+document.getElementById('sidebarSwitchAcctBtn').addEventListener('click', handleSwitchAccount);
 document.getElementById('btnGuest').addEventListener('click', enterGuestMode);
 document.getElementById('btnUpgrade').addEventListener('click', () => {
   document.getElementById('appScreen').style.display = 'none';
   document.getElementById('authScreen').style.display = 'block';
+  const sb = document.getElementById('sidebar');
+  if (sb) sb.style.display = 'none';
+  if (typeof repositionSiteBanner === 'function') repositionSiteBanner();
 });
 
 (async () => {
+  loadSettings();
   // Handle hash - could be #todo#access_token or just #access_token
   let hash = window.location.hash;
   console.log('Full hash:', hash.substring(0, 80) + '...');
@@ -289,15 +489,35 @@ document.getElementById('btnUpgrade').addEventListener('click', () => {
   console.log('Session:', session ? 'exists' : 'none');
   
   if (!session) {
-    document.getElementById('authScreen').style.display = 'block';
-    setPage(pageFromHash(), { updateHash: false });
+    if (localStorage.getItem(LS_GUEST) === '1') {
+      enterGuestMode();
+    } else {
+      document.getElementById('authScreen').style.display = 'block';
+      loadGuestWatchlist();
+      renderWatchlist();
+      setPage(pageFromHash(), { updateHash: false });
+    }
   } else {
     mode = 'synced';
     currentUser = session.user;
     updateAdminAccess();
+    loadGuestWatchlist();
+    renderWatchlist();
     setPage(pageFromHash(), { updateHash: false });
+    loadSynced().catch(error => {
+      dot('err');
+      toast('load error: ' + error.message, 'var(--danger)');
+    });
   }
-  await loadSiteNotice();
+  if (typeof applyDefaults === 'function') applyDefaults();
+  await loadSiteNotice().catch(() => {});
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      if (typeof repositionSiteBanner === 'function') repositionSiteBanner();
+    }, 200);
+  });
 })();
 
 async function removeStoragePaths(paths) {
@@ -312,8 +532,8 @@ async function uploadFile(todoId, rawFile) {
   const file = await compressImage(rawFile);
   if (file.size < rawFile.size) toast('compressed ' + rawFile.name + ': ' + fmtSize(rawFile.size) + ' → ' + fmtSize(file.size));
 
-  if (mode === 'guest') {
-    if (file.size > MAX_GUEST_FILE) { toast('guest: max 5MB per file', 'var(--accent2)'); return; }
+  if (_realMode === 'guest') {
+    if (!devMode && file.size > MAX_GUEST_FILE) { toast('guest: max 5MB per file', 'var(--accent2)'); return; }
     const reader = new FileReader();
     reader.onload = ev => {
       (attMap[todoId] = attMap[todoId] || []).push({ id: uid(), name: file.name, size: file.size, mime: file.type, dataUrl: ev.target.result });
@@ -322,7 +542,8 @@ async function uploadFile(todoId, rawFile) {
     reader.readAsDataURL(file);
   } else {
     if (file.size > MAX_SYNC_FILE) { toast('max 50MB per file', 'var(--accent2)'); return; }
-    const ext = file.name.split('.').pop();
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const ext = safeName.split('.').pop();
     const path = currentUser.id + '/' + todoId + '/' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.' + ext;
     dot('syncing');
     const { error: upErr } = await sb.storage.from('attachments').upload(path, file);
@@ -339,7 +560,7 @@ async function uploadFile(todoId, rawFile) {
 }
 
 async function deleteAttachment(attId, todoId) {
-  if (mode === 'guest') {
+  if (typeof _realMode !== 'undefined' ? _realMode === 'guest' : true) {
     if (attMap[todoId]) attMap[todoId] = attMap[todoId].filter(a => a.id !== attId);
     saveGuest(); render(); toast('removed');
   } else {
@@ -395,32 +616,62 @@ function downloadDataUrl(a) {
   document.body.appendChild(link); link.click(); document.body.removeChild(link);
 }
 
+function showConfirm(msg) {
+  return new Promise(resolve => {
+    const m = document.createElement('div');
+    m.className = 'img-modal';
+    m.style.cursor = 'default';
+    m.innerHTML = '<div style="background:var(--surface2);border:1px solid var(--border);padding:24px;max-width:400px;text-align:center;">'
+      + '<p style="font-size:0.82rem;color:var(--text);line-height:1.7;margin-bottom:20px;">' + esc(msg) + '</p>'
+      + '<div style="display:flex;gap:10px;justify-content:center;">'
+      + '<button class="img-modal-dl" id="confirmYes" style="position:static;transform:none;">YES</button>'
+      + '<button class="img-modal-close" id="confirmNo" style="position:static;">NO</button>'
+      + '</div></div>';
+    m.querySelector('#confirmYes').onclick = () => { m.remove(); resolve(true); };
+    m.querySelector('#confirmNo').onclick = () => { m.remove(); resolve(false); };
+    m.onclick = e => { if (e.target === m) { m.remove(); resolve(false); } };
+    document.body.appendChild(m);
+    document.getElementById('confirmNo').focus();
+  });
+}
+
 function findAtt(id) {
   for (const arr of Object.values(attMap)) { const a = arr.find(a => a.id === id); if (a) return a; }
   return null;
 }
 
 async function getSignedUrl(path) {
-  const { data } = await sb.storage.from('attachments').createSignedUrl(path, 300);
+  const { data } = await sb.storage.from('attachments').createSignedUrl(path, 120);
   return data?.signedUrl || null;
 }
 
 function buildAttPanel(todoId, atts) {
   const items = atts.map(a => {
     const isImg = (a.mime||'').startsWith('image/');
-    return '<div class="att-row">'
-      + '<span class="att-icon">' + mimeIcon(a.mime||'') + '</span>'
-      + '<span class="att-name" data-att="' + a.id + '">' + esc(a.name) + '</span>'
-      + '<span class="att-size">' + fmtSize(a.size||0) + '</span>'
-      + '<button class="att-rm" data-att="' + a.id + '" data-tid="' + todoId + '">×</button>'
-      + '</div>'
-      + (isImg && a.dataUrl ? '<img class="att-img" src="' + esc(a.dataUrl) + '" alt="' + esc(a.name) + '" data-att="' + a.id + '">' : '')
-      + (isImg && a.path ? '<img class="att-img" data-path="' + esc(a.path) + '" src="" alt="' + esc(a.name) + '" data-att="' + a.id + '">' : '');
+    if (isImg) {
+      const imgSrc = a.dataUrl ? 'src="' + esc(a.dataUrl) + '"'
+        : 'data-path="' + esc(a.path) + '" src="data:,"';
+      return '<div class="att-card">'
+        + '<img class="att-thumb att-img" loading="lazy" ' + imgSrc + ' alt="' + esc(a.name) + '" data-att="' + a.id + '">'
+        + '<div class="att-overlay">'
+        + '<span class="att-name" data-att="' + a.id + '">' + esc(a.name) + '</span>'
+        + '<button class="att-rm" data-att="' + a.id + '" data-tid="' + todoId + '">×</button>'
+        + '</div></div>';
+    } else {
+      return '<div class="att-card att-file" data-att="' + a.id + '">'
+        + '<div class="att-file-icon">' + mimeIcon(a.mime||'') + '</div>'
+        + '<div class="att-file-info">'
+        + '<span class="att-name" data-att="' + a.id + '">' + esc(a.name) + '</span>'
+        + '<span class="att-size">' + fmtSize(a.size||0) + '</span>'
+        + '</div>'
+        + '<button class="att-rm" data-att="' + a.id + '" data-tid="' + todoId + '">×</button>'
+        + '</div>';
+    }
   }).join('');
 
   const lim = mode === 'guest' ? 'max 5MB, images compressed' : 'max 50MB per file, images compressed';
   return '<div class="att-panel open">'
-    + '<div class="att-list">' + items + '</div>'
+    + '<div class="att-gallery">' + items + '</div>'
     + '<div class="att-upload-row">'
     + '<label class="att-up-btn" for="fu-' + todoId + '">+ ATTACH FILE</label>'
     + '<input type="file" id="fu-' + todoId + '" class="file-input" data-tid="' + todoId + '" multiple>'
@@ -430,10 +681,9 @@ function buildAttPanel(todoId, atts) {
 }
 
 async function loadSignedPreviews(container) {
-  for (const img of container.querySelectorAll('.att-img[data-path]')) {
-    const url = await getSignedUrl(img.dataset.path);
-    if (url) img.src = url;
-  }
+  const imgs = [...container.querySelectorAll('.att-img[data-path], .att-thumb[data-path]')];
+  const urls = await Promise.all(imgs.map(img => getSignedUrl(img.dataset.path)));
+  urls.forEach((url, i) => { if (url) imgs[i].src = url; });
 }
 
 document.getElementById('saveNoticeBtn').addEventListener('click', saveSiteNotice);
@@ -447,69 +697,21 @@ document.getElementById('menuToggle').addEventListener('click', e => {
   menu.style.display = menu.style.display === 'none' ? 'flex' : 'none';
 });
 document.querySelectorAll('.app-menu-item').forEach(btn => btn.addEventListener('click', () => setPage(btn.dataset.page)));
+document.getElementById('sidebar').addEventListener('click', e => {
+  const btn = e.target.closest('.sidebar-btn[data-page]');
+  if (btn) setPage(btn.dataset.page);
+});
+
 document.addEventListener('click', e => {
   if (!e.target.closest('.menu-wrap')) closeAppMenu();
 });
 window.addEventListener('hashchange', () => setPage(pageFromHash(), { updateHash: false }));
-document.getElementById('watchlistQuickAdd').addEventListener('click', quickAddWatchlistItem);
 document.getElementById('watchlistExportBtn').addEventListener('click', exportWatchlist);
 document.getElementById('watchlistImportBtn').addEventListener('click', () => document.getElementById('watchlistImportFile').click());
 document.getElementById('watchlistImportFile').addEventListener('change', e => {
   const file = e.target.files[0];
   if (file) importWatchlistFile(file);
   e.target.value = '';
-});
-document.getElementById('watchlistCategoryComposerClose').addEventListener('click', closeCategoryComposer);
-document.getElementById('watchlistCategoryComposerSave').addEventListener('click', async () => {
-  await saveWatchlistCategory();
-});
-document.getElementById('watchlistCategoryDeleteClose').addEventListener('click', closeDeleteCategoryComposer);
-document.getElementById('watchlistCategoryDeleteConfirm').addEventListener('click', async () => {
-  const key = document.getElementById('watchlistDeleteCategoryKey').value;
-  if (key) await removeWatchlistCategory(key);
-});
-document.getElementById('watchlistComposerClose').addEventListener('click', closeWatchlistComposer);
-document.getElementById('watchlistComposerSave').addEventListener('click', async () => {
-  await saveWatchlistComposer();
-});
-document.getElementById('watchlistCategory').addEventListener('change', () => {
-  const key = document.getElementById('watchlistCategory').value;
-  const category = watchlistCategories.find(entry => entry.key === key);
-  document.getElementById('watchlistComposerTitle').textContent = (watchlistComposerMode === 'edit' ? 'Edit ' : 'Add to ') + (category?.label || key);
-  updateWatchlistComposerFields();
-});
-document.getElementById('watchlistEpisodicInput').addEventListener('change', updateWatchlistComposerFields);
-document.getElementById('watchlistDeleteModeMove').addEventListener('change', () => {
-  document.getElementById('watchlistDeleteMoveField').style.display = document.getElementById('watchlistDeleteModeMove').checked ? 'flex' : 'none';
-});
-document.getElementById('watchlistDeleteModeDelete').addEventListener('change', () => {
-  document.getElementById('watchlistDeleteMoveField').style.display = document.getElementById('watchlistDeleteModeMove').checked ? 'flex' : 'none';
-});
-document.getElementById('watchlistGroups').addEventListener('click', async e => {
-  const addBtn = e.target.closest('.watchlist-add-btn');
-  if (addBtn) {
-    addWatchlistItem(addBtn.dataset.cat);
-    return;
-  }
-  const deleteCategoryBtn = e.target.closest('[data-cat-del]');
-  if (deleteCategoryBtn) {
-    openDeleteCategoryComposer(deleteCategoryBtn.dataset.catDel);
-    return;
-  }
-  const btn = e.target.closest('[data-wl-action]');
-  if (!btn) return;
-  const { wlAction: action, wlCat: category, wlId: id, step } = btn.dataset;
-  if (action === 'delete') await deleteWatchlistItem(category, id);
-  else if (action === 'edit') editWatchlistItem(category, id);
-  else if (action === 'cycle') await cycleWatchlistStatus(category, id);
-  else if (action === 'finish') await finishWatchlistItem(category, id);
-  else if (action === 'step') await stepWatchlist(category, id, 'progress', Number(step || 0));
-  else if (action === 'season') await stepWatchlist(category, id, 'season', Number(step || 0));
-  else if (action === 'episode') await stepWatchlist(category, id, 'episode', Number(step || 0));
-  else if (action === 'toggle-progress') {
-    watchlistExpanded.has(id) ? watchlistExpanded.delete(id) : watchlistExpanded.add(id);
-    renderWatchlist();
-  }
 });
 
 if ('serviceWorker' in navigator) {
@@ -520,7 +722,4 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-loadGuestWatchlist();
-renderWatchlistCategoryOptions();
-renderWatchlist();
-setPage(pageFromHash(), { updateHash: false });
+
