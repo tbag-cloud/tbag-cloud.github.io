@@ -1,4 +1,4 @@
-const CACHE_NAME = 'todo-pwa-v17';
+const CACHE_NAME = 'todo-pwa-v30';
 
 const CORE_ASSETS = [
   './',
@@ -7,6 +7,7 @@ const CORE_ASSETS = [
   './app-pages.js?v=1.5.0',
   './watchlist.js?v=1.5.0',
   './admin.js?v=1.5.0',
+  './settings.js?v=1.5.0',
   './todo.js?v=1.5.0',
   './script.js?v=1.5.0',
   './drive.js?v=1.5.0',
