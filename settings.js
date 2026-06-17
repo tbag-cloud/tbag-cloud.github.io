@@ -39,7 +39,7 @@ function loadSettings() {
 function syncDevMode() {
   if (typeof devMode !== 'undefined') devMode = settings.devMode;
   if (typeof devScenario !== 'undefined') {
-    devScenario.drive = settings.devDrive;
+    devScenario.drive = settings.devMode ? settings.devDrive : true;
     devScenario.showAdmin = settings.devShowAdmin;
     devScenario.apiErrors = settings.devApiErrors;
   }
