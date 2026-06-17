@@ -30,8 +30,13 @@ async function loadSyncedDrive() {
       .eq('is_standalone', true);
     
     if (result.error) {
-      console.warn('load error:', result.error);
-      data = [];
+      if (result.error.code === '42703' || (result.error.message && result.error.message.includes('is_standalone'))) {
+        const fallback = await sb.from('attachments').select('*').eq('user_id', currentUser.id);
+        data = (fallback.data || []).filter(a => a.todo_id === '00000000-0000-0000-0000-000000000000');
+      } else {
+        console.warn('load error:', result.error);
+        data = [];
+      }
     } else {
       data = result.data || [];
     }
