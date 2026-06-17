@@ -46,7 +46,7 @@ async function loadSynced() {
   try {
     const [todosResult, attsResult] = await Promise.all([
       sb.from('todos').select('*').eq('user_id', currentUser.id),
-      sb.from('attachments').select('*').eq('user_id', currentUser.id).catch(e => { console.warn('attachments query failed:', e); return { data: [], error: e }; })
+      (async () => { try { return await sb.from('attachments').select('*').eq('user_id', currentUser.id); } catch (e) { console.warn('attachments query failed:', e); return { data: [], error: e }; } })()
     ]);
 
     const tData = todosResult.data;
