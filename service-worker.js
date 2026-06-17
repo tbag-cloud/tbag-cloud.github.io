@@ -1,16 +1,8 @@
-const CACHE_NAME = 'todo-pwa-v30';
+const CACHE_NAME = 'todo-pwa-v31';
 
 const CORE_ASSETS = [
   './',
   './index.html',
-  './style.css?v=1.5.0',
-  './app-pages.js?v=1.5.0',
-  './watchlist.js?v=1.5.0',
-  './admin.js?v=1.5.0',
-  './settings.js?v=1.5.0',
-  './todo.js?v=1.5.0',
-  './script.js?v=1.5.0',
-  './drive.js?v=1.5.0',
   './manifest.webmanifest',
   './icon-192.png',
   './icon-512.png'
@@ -41,14 +33,22 @@ self.addEventListener('fetch', event => {
     return;
   }
   
-  // App shell assets - cache first for speed
+  // Navigation - network first, fall back to cached index.html
+  if (isNav) {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match('./index.html'))
+    );
+    return;
+  }
+  
+  // Static assets (.js, .css, .html, .webmanifest, .png) - cache first
   const isAppAsset = url.pathname.endsWith('.js') || 
                      url.pathname.endsWith('.css') || 
                      url.pathname.endsWith('.html') ||
                      url.pathname.endsWith('.webmanifest') ||
                      url.pathname.endsWith('.png');
   
-  if (isAppAsset && !isNav) {
+  if (isAppAsset) {
     event.respondWith(
       caches.match(event.request).then(cached => {
         if (cached) return cached;
@@ -64,11 +64,6 @@ self.addEventListener('fetch', event => {
     return;
   }
   
-  // Navigation and other requests - network first
-  event.respondWith(
-    fetch(event.request).catch(() => {
-      if (isNav) return caches.match('./index.html');
-      return new Response('Offline', { status: 503 });
-    })
-  );
+  // Everything else - network only
+  event.respondWith(fetch(event.request));
 });
