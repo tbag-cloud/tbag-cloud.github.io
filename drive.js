@@ -31,14 +31,17 @@ async function loadSyncedDrive() {
     
     if (result.error) {
       if (result.error.code === '42703' || (result.error.message && result.error.message.includes('is_standalone'))) {
-        const fallback = await sb.from('attachments').select('*').eq('user_id', currentUser.id);
-        data = (fallback.data || []).filter(a => a.todo_id === '00000000-0000-0000-0000-000000000000');
+        const fb = await sb.from('attachments').select('*').eq('user_id', currentUser.id);
+        data = (fb.data || []).filter(a => a.todo_id === '00000000-0000-0000-0000-000000000000');
       } else {
         console.warn('load error:', result.error);
         data = [];
       }
+    } else if (result.data && result.data.length) {
+      data = result.data;
     } else {
-      data = result.data || [];
+      const fb = await sb.from('attachments').select('*').eq('user_id', currentUser.id).eq('todo_id', '00000000-0000-0000-0000-000000000000');
+      data = fb.data && fb.data.length ? fb.data : [];
     }
   } catch (e) {
     console.warn('drive load error:', e);
