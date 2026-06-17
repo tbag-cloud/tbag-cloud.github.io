@@ -5,6 +5,7 @@ const MAX_GUEST_FILE = 5 * 1024 * 1024;
 const MAX_SYNC_FILE  = 50 * 1024 * 1024;
 const SYNC_STORAGE_LIMIT = 1024 * 1024 * 1024;
 const ADMIN_EMAILS = ['themiplayz1@gmail.com'];
+const APP_VERSION = '1.19.0';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
@@ -716,6 +717,15 @@ document.getElementById('watchlistImportFile').addEventListener('change', e => {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
+    const stored = localStorage.getItem('app_version');
+    if (stored !== APP_VERSION) {
+      localStorage.setItem('app_version', APP_VERSION);
+      caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).catch(() => {});
+      navigator.serviceWorker.getRegistration().then(reg => {
+        if (reg) reg.unregister();
+      }).then(() => location.reload());
+      return;
+    }
     navigator.serviceWorker.register('./service-worker.js')
       .then(reg => console.log('service worker registered:', reg.scope))
       .catch(error => console.error('service worker registration failed:', error));
