@@ -117,7 +117,7 @@ function renderStoragePanel() {
       + '<div class="settings-storage-meta">' + todoCount + ' todo' + (todoCount===1?'':'s') + ' · ' + attCount + ' attachment' + (attCount===1?'':'s') + '</div>';
   } else {
     const attBytes = Object.values(window.attMap || {}).flat().reduce((s,a) => s + (a.size||0), 0);
-    const driveBytes = driveFiles.reduce((s,f) => s + (f.size||0), 0);
+    const driveBytes = (typeof driveFiles !== 'undefined' ? driveFiles : []).reduce((s,f) => s + (f.size||0), 0);
     const totalBytes = attBytes + driveBytes;
     const totalMax = 1073741824;
     const totalPct = Math.min(100, (totalBytes / totalMax) * 100);
