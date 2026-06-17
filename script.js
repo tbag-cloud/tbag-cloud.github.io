@@ -297,7 +297,7 @@ function updatePageStats() {
   if (ts) ts.textContent = todoStats;
 
   const ds = document.getElementById('driveStats');
-  if (ds) ds.textContent = driveCount + ' file' + (driveCount===1?'':'s') + ' · ' + fmt(driveFiles.reduce((s,f) => s + (f.size||0), 0));
+  if (ds) ds.textContent = driveCount + ' file' + (driveCount===1?'':'s') + ' · ' + fmt((typeof driveFiles !== 'undefined' ? driveFiles : []).reduce((s,f) => s + (f.size||0), 0));
 
   const ws = document.getElementById('watchlistStats');
   if (ws) ws.textContent = wlItems + ' item' + (wlItems===1?'':'s') + ' across ' + wlCats + ' categor' + (wlCats===1?'y':'ies');
