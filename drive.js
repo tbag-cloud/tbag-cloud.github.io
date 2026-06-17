@@ -60,6 +60,9 @@ async function loadSyncedDrive() {
   dot('ok');
   renderDrive();
   loadDrivePreviews();
+  if (typeof updatePageStats === 'function') updatePageStats();
+  if (typeof updateSidebarCounts === 'function') updateSidebarCounts();
+  if (typeof updateSidebarStorage === 'function') updateSidebarStorage();
 }
 
 function getFilteredDrive() {
