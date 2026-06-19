@@ -42,6 +42,7 @@ async function saveNotesState() {
       const { error } = await sb.from('notes').insert(rows);
       if (error) throw error;
     }
+    renderNotes();
     return true;
   } catch (e) {
     if (e && e.message && (e.message.includes('42P01') || e.message.includes('notes'))) {
@@ -312,6 +313,7 @@ async function deleteNote(id) {
   }
   notesData = notesData.filter(n => n.id !== id);
   await saveNotesState();
+  renderNotes();
   if (typeof updateStorageMeter === 'function') updateStorageMeter();
 }
 
