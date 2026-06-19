@@ -381,3 +381,7 @@ async function loadDrivePreviews() {
     if (url) imgs[i].innerHTML = '<img src="' + url + '" loading="lazy" style="width:100%;height:100%;object-fit:cover;">';
   });
 }
+
+if (typeof currentPage !== 'undefined' && currentPage === 'drive' && typeof loadSyncedDrive === 'function') {
+  loadSyncedDrive().catch(() => {});
+}
