@@ -738,6 +738,6 @@ if ('serviceWorker' in navigator) {
       .then(reg => console.log('service worker registered:', reg.scope))
       .catch(error => console.error('service worker registration failed:', error));
   });
-}
+} 
 
 
