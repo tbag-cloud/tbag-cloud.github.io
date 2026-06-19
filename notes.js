@@ -4,7 +4,9 @@ const NOTE_COLORS = ['', 'accent', 'accent2', 'danger', 'success', 'warning'];
 let notesData = [];
 let notesArchivedView = false;
 let pendingAttachments = [];
-const MAX_NOTE_FILE = 5 * 1024 * 1024;
+const MAX_NOTE_FILE_GUEST = 5 * 1024 * 1024;
+const MAX_NOTE_FILE_SYNC = 50 * 1024 * 1024;
+function noteFileLimit() { return (typeof _realMode !== 'undefined' ? _realMode === 'guest' : true) ? MAX_NOTE_FILE_GUEST : MAX_NOTE_FILE_SYNC; }
 
 function noteId() { return Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7); }
 
@@ -274,7 +276,7 @@ async function handleNoteAttach(id) {
     const note = notesData.find(x => x.id === id);
     if (!note || !input.files.length) return;
     for (const f of input.files) {
-      if (f.size > MAX_NOTE_FILE) { toast('max 5MB per file', 'var(--accent2)'); continue; }
+      if (f.size > noteFileLimit()) { toast((typeof _realMode !== 'undefined' && _realMode === 'guest' ? 'max 5MB' : 'max 50MB') + ' per file', 'var(--accent2)'); continue; }
       note.attachments.push(await processAttachment(f));
     }
     note.updated = new Date().toISOString();
@@ -404,7 +406,7 @@ function renderNotesInput() {
     input.multiple = true;
     input.onchange = () => {
       for (const f of input.files) {
-        if (f.size > MAX_NOTE_FILE) { toast('max 5MB per file', 'var(--accent2)'); continue; }
+        if (f.size > noteFileLimit()) { toast((typeof _realMode !== 'undefined' && _realMode === 'guest' ? 'max 5MB' : 'max 50MB') + ' per file', 'var(--accent2)'); continue; }
         pendingAttachments.push(f);
       }
       renderPendingChips();
