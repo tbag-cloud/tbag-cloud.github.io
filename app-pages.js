@@ -86,8 +86,10 @@ function setPage(page, { updateHash = true } = {}) {
   closeAppMenu();
   if (updateHash) syncPageHash();
   if (currentPage === 'todo') render();
-  else if (currentPage === 'drive') { 
-    loadSyncedDrive().catch(err => { console.warn('drive load error:', err); toast('drive load failed', 'var(--danger)'); });
+  else if (currentPage === 'drive') {
+    if (typeof loadSyncedDrive === 'function') {
+      loadSyncedDrive().catch(err => { console.warn('drive load error:', err); toast('drive load failed', 'var(--danger)'); });
+    }
   }
   else if (currentPage === 'notes') {
     if (typeof initNotes === 'function') initNotes();
