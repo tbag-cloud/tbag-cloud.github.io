@@ -18,7 +18,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="style.css?v=1.19.0">
+<link rel="stylesheet" href="style.css?v=1.20.2">
 </head>
 <body>
 
@@ -30,6 +30,7 @@
       <div class="sidebar-nav">
         <button class="sidebar-btn active" data-page="todo" type="button"><span class="sidebar-btn-icon">▣</span>TODO <span class="sidebar-count" id="navCountTodo"></span></button>
         <button class="sidebar-btn" data-page="drive" type="button"><span class="sidebar-btn-icon">↑</span>DRIVE <span class="sidebar-count" id="navCountDrive"></span></button>
+        <button class="sidebar-btn" data-page="notes" type="button"><span class="sidebar-btn-icon">✎</span>NOTES <span class="sidebar-count" id="navCountNotes"></span></button>
         <button class="sidebar-btn" data-page="watchlist" type="button"><span class="sidebar-btn-icon">★</span>WATCHLIST <span class="sidebar-count" id="navCountWatchlist"></span></button>
         <button class="sidebar-btn" data-page="settings" type="button"><span class="sidebar-btn-icon">◆</span>SETTINGS</button>
         <button class="sidebar-btn" id="sidebarAdmin" data-page="admin" type="button" style="display:none"><span class="sidebar-btn-icon">▲</span>ADMIN</button>
@@ -81,6 +82,7 @@
         <div class="app-menu" id="appMenu" style="display:none">
           <button class="app-menu-item active" id="menuPageTodo" data-page="todo" type="button">TODO</button>
           <button class="app-menu-item" id="menuPageDrive" data-page="drive" type="button">DRIVE</button>
+          <button class="app-menu-item" id="menuPageNotes" data-page="notes" type="button">NOTES</button>
           <button class="app-menu-item" id="menuPageWatchlist" data-page="watchlist" type="button">WATCHLIST</button>
           <button class="app-menu-item" id="menuPageSettings" data-page="settings" type="button">SETTINGS</button>
           <button class="app-menu-item" id="menuPageAdmin" data-page="admin" type="button" style="display:none">ADMIN</button>
@@ -130,6 +132,13 @@
       <div class="watchlist-kicker">CONTROL</div>
       <h2>Admin</h2>
       <p>Keep global usage, banner controls, and project-wide stats out of the main app flow.</p>
+    </div>
+  </div>
+  <div id="heroNotes" class="notes-hero" style="display:none">
+    <div>
+      <div class="notes-kicker">NOTES</div>
+      <h2>Notes</h2>
+      <p>Quick notes, thoughts, and ideas — always in sync.</p>
     </div>
   </div>
 
@@ -264,6 +273,19 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <div class="app-page notes-page" id="notesPage" style="display:none">
+    <div class="notes-hero-actions">
+      <button class="notes-toggle-btn" id="notesArchiveToggle" type="button">📦 ARCHIVED</button>
+    </div>
+    <div id="notesInputContainer"></div>
+    <div class="notes-list" id="notesList"></div>
+    <div class="notes-empty" id="notesEmpty" style="display:none">
+      <div class="big">💬</div>
+      <p>No notes yet — start a conversation with yourself</p>
+    </div>
+    <div class="page-stats" id="notesStats"></div>
   </div>
 
   <div class="app-page settings-page" id="settingsPage" style="display:none">
@@ -409,13 +431,14 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="app-pages.js?v=1.19.0"></script>
-<script src="watchlist.js?v=1.19.0"></script>
-<script src="admin.js?v=1.19.0"></script>
-<script src="settings.js?v=1.19.0"></script>
-<script src="todo.js?v=1.19.0"></script>
-<script src="script.js?v=1.19.0"></script>
-<script src="drive.js?v=1.19.0"></script>
+<script src="app-pages.js?v=1.20.2"></script>
+<script src="watchlist.js?v=1.20.2"></script>
+<script src="admin.js?v=1.20.2"></script>
+<script src="settings.js?v=1.20.2"></script>
+<script src="todo.js?v=1.20.2"></script>
+<script src="notes.js?v=1.20.2"></script>
+<script src="script.js?v=1.20.2"></script>
+<script src="drive.js?v=1.20.2"></script>
 </body>
 </html>
 
