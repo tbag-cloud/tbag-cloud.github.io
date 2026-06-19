@@ -5,7 +5,7 @@ const MAX_GUEST_FILE = 5 * 1024 * 1024;
 const MAX_SYNC_FILE  = 50 * 1024 * 1024;
 const SYNC_STORAGE_LIMIT = 1024 * 1024 * 1024;
 const ADMIN_EMAILS = ['themiplayz1@gmail.com'];
-const APP_VERSION = '1.19.0';
+const APP_VERSION = '1.20.2';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
@@ -212,7 +212,7 @@ function updateStorageMeter() {
     globalUsage = null;
     updateGlobalUsagePanel();
     let bytes = 0;
-    try { bytes = (localStorage.getItem(LS_TODOS)||'').length + (localStorage.getItem(LS_ATTS)||'').length; } catch {}
+    try { bytes = (localStorage.getItem(LS_TODOS)||'').length + (localStorage.getItem(LS_ATTS)||'').length + (localStorage.getItem(LS_NOTES)||'').length; } catch {}
     const max = devMode ? SYNC_STORAGE_LIMIT : 5000000;
     const pct = Math.min(100, (bytes / max) * 100);
     _elStorageFill.className = 'storage-fill' + (pct > 80 ? ' full' : pct > 60 ? ' warn' : '');
@@ -286,7 +286,7 @@ function updatePageStats() {
   let todoStats = '';
   if (_realMode === 'guest') {
     let bytes = 0;
-    try { bytes = (localStorage.getItem(LS_TODOS)||'').length + (localStorage.getItem(LS_ATTS)||'').length; } catch {}
+    try { bytes = (localStorage.getItem(LS_TODOS)||'').length + (localStorage.getItem(LS_ATTS)||'').length + (localStorage.getItem(LS_NOTES)||'').length; } catch {}
     todoStats = todoCount + ' item' + (todoCount===1?'':'s') + ' · ' + attCount + ' attachment' + (attCount===1?'':'s') + ' · ' + fmt(bytes);
   } else {
     const attBytes = Object.values(window.attMap || {}).flat().reduce((s,a) => s + (a.size||0), 0);
@@ -301,6 +301,9 @@ function updatePageStats() {
 
   const ws = document.getElementById('watchlistStats');
   if (ws) ws.textContent = wlItems + ' item' + (wlItems===1?'':'s') + ' across ' + wlCats + ' categor' + (wlCats===1?'y':'ies');
+  const notesCount = typeof notesData !== 'undefined' ? notesData.filter(n => !n.archived).length : 0;
+  const ns = document.getElementById('notesStats');
+  if (ns && ns.textContent === '') ns.textContent = notesCount + ' note' + (notesCount===1?'':'s');
 }
 
 function updateSidebarCounts() {
@@ -313,6 +316,9 @@ function updateSidebarCounts() {
   if (dc) dc.textContent = driveCount || '';
   const wc = document.getElementById('navCountWatchlist');
   if (wc) wc.textContent = wlTotal || '';
+  const notesCount = typeof notesData !== 'undefined' ? notesData.filter(n => !n.archived).length : 0;
+  const nc = document.getElementById('navCountNotes');
+  if (nc) nc.textContent = notesCount || '';
 }
 
 function updateSidebarStorage() {
@@ -322,7 +328,7 @@ function updateSidebarStorage() {
   if (!el || !fill || !label) return;
   if (_realMode === 'guest') {
     let bytes = 0;
-    try { bytes = (localStorage.getItem(LS_TODOS)||'').length + (localStorage.getItem(LS_ATTS)||'').length; } catch {}
+    try { bytes = (localStorage.getItem(LS_TODOS)||'').length + (localStorage.getItem(LS_ATTS)||'').length + (localStorage.getItem(LS_NOTES)||'').length; } catch {}
     if (devMode) {
       const pct = Math.min(100, (bytes / SYNC_STORAGE_LIMIT) * 100);
       el.style.display = 'block';
@@ -476,8 +482,8 @@ document.getElementById('btnUpgrade').addEventListener('click', () => {
       try {
         await sb.auth.setSession({ access_token: at, refresh_token: rt });
         // Clean URL but keep page hash
-        const pageHash = hash.includes('#todo') || hash.includes('#drive') || hash.includes('#watchlist') || hash.includes('#admin') 
-          ? hash.match(/#(todo|drive|watchlist|admin)/)?.[0] || '' 
+        const pageHash = hash.includes('#todo') || hash.includes('#drive') || hash.includes('#watchlist') || hash.includes('#admin') || hash.includes('#notes') 
+          ? hash.match(/#(todo|drive|watchlist|admin|notes)/)?.[0] || '' 
           : '';
         history.replaceState(null, '', window.location.pathname + pageHash);
       } catch (e) {
