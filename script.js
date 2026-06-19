@@ -290,14 +290,14 @@ function updatePageStats() {
     todoStats = todoCount + ' item' + (todoCount===1?'':'s') + ' · ' + attCount + ' attachment' + (attCount===1?'':'s') + ' · ' + fmt(bytes);
   } else {
     const attBytes = Object.values(window.attMap || {}).flat().reduce((s,a) => s + (a.size||0), 0);
-    const driveBytes = driveFiles.reduce((s,f) => s + (f.size||0), 0);
+    const driveBytes = (typeof driveFiles !== 'undefined' ? driveFiles : []).reduce((s,f) => s + (f.size||0), 0);
     todoStats = todoCount + ' item' + (todoCount===1?'':'s') + ' · ' + attCount + ' attachment' + (attCount===1?'':'s') + ' · ' + fmt(attBytes + driveBytes);
   }
   const ts = document.getElementById('todoStats');
   if (ts) ts.textContent = todoStats;
 
   const ds = document.getElementById('driveStats');
-  if (ds) ds.textContent = driveCount + ' file' + (driveCount===1?'':'s') + ' · ' + fmt((typeof driveFiles !== 'undefined' ? driveFiles : []).reduce((s,f) => s + (f.size||0), 0));
+  if (ds) ds.textContent = driveCount + ' file' + (driveCount===1?'':'s') + ' · ' + fmt(driveCount > 0 ? (typeof driveFiles !== 'undefined' ? driveFiles : []).reduce((s,f) => s + (f.size||0), 0) : 0);
 
   const ws = document.getElementById('watchlistStats');
   if (ws) ws.textContent = wlItems + ' item' + (wlItems===1?'':'s') + ' across ' + wlCats + ' categor' + (wlCats===1?'y':'ies');
@@ -722,14 +722,16 @@ document.getElementById('watchlistImportFile').addEventListener('change', e => {
 });
 
 if ('serviceWorker' in navigator) {
+  var _refreshing=false;
+  navigator.serviceWorker.addEventListener('controllerchange',function(){if(_refreshing)return;_refreshing=true;location.reload();});
   window.addEventListener('load', () => {
     const stored = localStorage.getItem('app_version');
     if (stored !== APP_VERSION) {
       localStorage.setItem('app_version', APP_VERSION);
-      caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).catch(() => {});
-      navigator.serviceWorker.getRegistration().then(reg => {
-        if (reg) reg.unregister();
-      }).then(() => location.reload());
+      Promise.all([
+        caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))),
+        navigator.serviceWorker.getRegistration().then(reg => reg ? reg.unregister() : null)
+      ]).catch(() => {}).then(() => location.reload());
       return;
     }
     navigator.serviceWorker.register('./service-worker.js')
