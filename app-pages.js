@@ -41,6 +41,7 @@ function pageFromHash(hash = window.location.hash) {
   if (clean === 'watchlist') return 'watchlist';
   if (clean === 'admin') return 'admin';
   if (clean === 'settings') return 'settings';
+  if (clean === 'notes') return 'notes';
   return 'todo';
 }
 
@@ -58,6 +59,8 @@ function setPage(page, { updateHash = true } = {}) {
     currentPage = 'settings';
   } else if (page === 'watchlist') {
     currentPage = 'watchlist';
+  } else if (page === 'notes') {
+    currentPage = 'notes';
   } else if (page === 'drive' && driveAllowed) {
     currentPage = 'drive';
   } else if (page === 'admin' && adminAllowed) {
@@ -69,21 +72,26 @@ function setPage(page, { updateHash = true } = {}) {
   document.getElementById('drivePage').style.display = currentPage === 'drive' ? 'block' : 'none';
   document.getElementById('watchlistPage').style.display = currentPage === 'watchlist' ? 'block' : 'none';
   document.getElementById('adminPage').style.display = currentPage === 'admin' ? 'block' : 'none';
+  document.getElementById('notesPage').style.display = currentPage === 'notes' ? 'block' : 'none';
   document.getElementById('settingsPage').style.display = currentPage === 'settings' ? 'block' : 'none';
   document.getElementById('todoToolbar').style.display = currentPage === 'todo' ? 'flex' : 'none';
   // Show/hide hero sections
-  ['heroTodo', 'heroDrive', 'heroWatchlist', 'heroSettings', 'heroAdmin'].forEach(id => {
+  ['heroTodo', 'heroDrive', 'heroWatchlist', 'heroSettings', 'heroAdmin', 'heroNotes'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = id === 'hero' + currentPage.charAt(0).toUpperCase() + currentPage.slice(1) ? '' : 'none';
   });
   const title = document.querySelector('h1 span');
-  if (title) title.textContent = currentPage === 'todo' ? 'TODO' : currentPage === 'drive' ? 'DRIVE' : currentPage === 'watchlist' ? 'WATCHLIST' : currentPage === 'settings' ? 'SETTINGS' : 'ADMIN';
+  if (title) title.textContent = currentPage === 'todo' ? 'TODO' : currentPage === 'drive' ? 'DRIVE' : currentPage === 'watchlist' ? 'WATCHLIST' : currentPage === 'settings' ? 'SETTINGS' : currentPage === 'notes' ? 'NOTES' : 'ADMIN';
   updatePageMenuState();
   closeAppMenu();
   if (updateHash) syncPageHash();
   if (currentPage === 'todo') render();
   else if (currentPage === 'drive') { 
     loadSyncedDrive().catch(err => { console.warn('drive load error:', err); toast('drive load failed', 'var(--danger)'); });
+  }
+  else if (currentPage === 'notes') {
+    if (typeof initNotes === 'function') initNotes();
+    if (typeof loadSyncedNotes === 'function') loadSyncedNotes().catch(() => {});
   }
   else if (currentPage === 'settings') {
     if (typeof renderSettingsPage === 'function') renderSettingsPage();
