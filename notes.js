@@ -128,7 +128,11 @@ function markdownToHtml(text) {
   h = h.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   h = h.replace(/\*(.+?)\*/g, '<em>$1</em>');
   h = h.replace(/`(.+?)`/g, '<code>$1</code>');
-  h = h.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  h = h.replace(/\[(.+?)\]\((.+?)\)/g, (match, textContent, url) => {
+    // Prevent XSS by verifying the URL is safe before rendering the link
+    const targetUrl = (typeof isSafeUrl === 'function' && isSafeUrl(url)) ? url : 'about:blank';
+    return '<a href="' + targetUrl + '" target="_blank" rel="noopener">' + textContent + '</a>';
+  });
   h = h.replace(/^- (.+)/gm, '<span class="note-bullet">•</span> $1');
   h = h.replace(/\n/g, '<br>');
   return h;

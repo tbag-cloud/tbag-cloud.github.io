@@ -153,7 +153,11 @@ function buildWatchlistCard(cat, item) {
   const stepMin = cat === 'manga' ? 0 : 1;
 
   let titleHtml = esc(item.title || 'Untitled');
-  if (item.url) titleHtml = '<a class="wl-link" href="' + esc(item.url) + '" target="_blank" rel="noopener">' + titleHtml + '</a>';
+  if (item.url) {
+    // Validate that the URL is safe before rendering the link to prevent XSS
+    const targetUrl = (typeof isSafeUrl === 'function' && isSafeUrl(item.url)) ? item.url : 'about:blank';
+    titleHtml = '<a class="wl-link" href="' + esc(targetUrl) + '" target="_blank" rel="noopener">' + titleHtml + '</a>';
+  }
 
   return '<div class="wl-card' + (item.done ? ' done' : '') + '" data-wlid="' + escId + '">'
     + '<div class="wl-card-top">'
@@ -258,7 +262,11 @@ async function commitAddRow(cat) {
   const title = inp.value.trim();
   if (!title) return;
   const pri = row.querySelector('.wl-add-pri').value;
-  const url = row.querySelector('.wl-add-url').value.trim().replace(/^javascript\s*:/i, '');
+  let url = row.querySelector('.wl-add-url').value.trim();
+  // Validate that the URL is safe before storing to prevent XSS
+  if (url && typeof isSafeUrl === 'function' && !isSafeUrl(url)) {
+    url = '';
+  }
   const seasonEl = row.querySelector('.wl-add-season');
   const season = seasonEl ? Math.max(1, parseInt(seasonEl.value, 10) || 1) : null;
   watchlistData[cat] = watchlistData[cat] || [];

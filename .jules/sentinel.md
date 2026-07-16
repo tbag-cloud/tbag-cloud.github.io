@@ -1,0 +1,8 @@
+# Sentinel's Security Journal 🛡️
+
+This journal records critical security learnings, reusable security patterns, and vulnerabilities addressed in this codebase to ensure defense-in-depth and secure coding practices.
+
+## 2024-07-16 - Robust URL Validation to Prevent Stored XSS
+**Vulnerability:** Stored XSS in `notes.js` via the markdown link parser `[text](javascript:...)` and in `watchlist.js` via the watchlist card URL `href` injection. Since user input was rendered inside `href` attributes, an attacker could inject `javascript:`, `data:`, or `vbscript:` URLs to execute arbitrary JavaScript code when the victim clicked the link.
+**Learning:** Simple sanitization techniques like `replace(/^javascript\s*:/i, '')` are insufficient and easily bypassable by inserting control characters or whitespaces inside the protocol name (e.g., `java\nscript:`, `java\tscript:`), as browsers ignore these characters during protocol resolution. Furthermore, when implementing strict checks, care must be taken not to false-positively block relative paths containing colons (e.g. `relative/path:with_colon`).
+**Prevention:** Implement a central, robust `isSafeUrl` validation utility that strips all whitespaces and control characters, parses the URL using the browser's native `URL` constructor, and explicitly restricts schemes/protocols to a safe allowlist (`http:`, `https:`, `mailto:`, `tel:`). For relative or invalid URLs that fail native parsing, perform a targeted check to ensure no custom scheme is present (by verifying any colon index only appears after a slash). Apply this check globally when rendering or saving user-controlled URLs.

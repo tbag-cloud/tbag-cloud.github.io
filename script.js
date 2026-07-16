@@ -94,6 +94,23 @@ const DEFAULT_WATCHLIST_CATEGORIES = [
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
 const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const isSafeUrl = url => {
+  if (!url) return false;
+  const cleanUrl = url.replace(/[\s\r\n\t]/g, '');
+  try {
+    const parsed = new URL(cleanUrl);
+    return ['http:', 'https:', 'mailto:', 'tel:'].includes(parsed.protocol);
+  } catch (e) {
+    const colonIndex = cleanUrl.indexOf(':');
+    const slashIndex = cleanUrl.indexOf('/');
+    if (colonIndex !== -1) {
+      if (slashIndex === -1 || colonIndex < slashIndex) {
+        return false;
+      }
+    }
+    return true;
+  }
+};
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 const fmtDate = iso => new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}).toUpperCase();
 const fmtSize = b => {
