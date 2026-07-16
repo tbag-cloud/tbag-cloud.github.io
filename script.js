@@ -584,6 +584,9 @@ async function deleteAttachment(attId, todoId) {
   }
 }
 
+// In-memory cache for signed URLs to optimize and avoid duplicate network requests
+const _signedUrlCache = new Map();
+
 async function openAttachment(attId) {
   const a = findAtt(attId); if (!a) return;
   if (a.dataUrl) {
@@ -592,10 +595,11 @@ async function openAttachment(attId) {
     return;
   }
   if (a.path) {
-    const { data } = await sb.storage.from('attachments').createSignedUrl(a.path, 120);
-    if (data?.signedUrl) {
-      if (a.mime && a.mime.startsWith('image/')) showImgModal(data.signedUrl, a.name, a);
-      else openExternalSafe(data.signedUrl);
+    // Utilize the cached signed URL if available and fresh
+    const signedUrl = await getSignedUrl(a.path);
+    if (signedUrl) {
+      if (a.mime && a.mime.startsWith('image/')) showImgModal(signedUrl, a.name, a);
+      else openExternalSafe(signedUrl);
     }
   }
 }
@@ -648,8 +652,23 @@ function findAtt(id) {
 }
 
 async function getSignedUrl(path) {
+  const now = Date.now();
+  if (_signedUrlCache.has(path)) {
+    const cached = _signedUrlCache.get(path);
+    // Cached URLs are valid for 120s, so we refresh them early (90s) to be completely safe
+    if (now < cached.expires) {
+      return cached.url;
+    }
+  }
   const { data } = await sb.storage.from('attachments').createSignedUrl(path, 120);
-  return data?.signedUrl || null;
+  const url = data?.signedUrl || null;
+  if (url) {
+    _signedUrlCache.set(path, {
+      url,
+      expires: now + 90000 // Cache for 90 seconds (90,000 milliseconds)
+    });
+  }
+  return url;
 }
 
 function buildAttPanel(todoId, atts) {
