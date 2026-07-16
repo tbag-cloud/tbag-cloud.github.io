@@ -157,7 +157,7 @@ function buildWatchlistCard(cat, item) {
 
   return '<div class="wl-card' + (item.done ? ' done' : '') + '" data-wlid="' + escId + '">'
     + '<div class="wl-card-top">'
-    + '<span class="wl-check" role="button" tabindex="0" data-wl-cat="' + escCat + '" data-wl-id="' + escId + '">' + (item.done ? '✓' : '○') + '</span>'
+    + '<span class="wl-check" role="checkbox" aria-checked="' + item.done + '" tabindex="0" aria-label="Toggle watchlist item state" data-wl-cat="' + escCat + '" data-wl-id="' + escId + '">' + (item.done ? '✓' : '○') + '</span>'
     + '<span class="wl-title">' + titleHtml + '</span>'
     + '<button class="wl-del" data-wl-cat="' + escCat + '" data-wl-id="' + escId + '" title="delete">×</button>'
     + '</div>'
@@ -328,6 +328,13 @@ document.getElementById('watchlistGroups').addEventListener('click', e => {
 });
 
 document.getElementById('watchlistGroups').addEventListener('keydown', e => {
+  const check = e.target.closest('.wl-check');
+  if (check && (e.key === ' ' || e.key === 'Enter')) {
+    e.preventDefault();
+    toggleWatchlistItem(check.dataset.wlCat, check.dataset.wlId);
+    return;
+  }
+
   const inp = e.target.closest('.wl-add-inp');
   if (!inp) return;
   if (e.key === 'Enter') { commitAddRow(inp.dataset.cat); return; }

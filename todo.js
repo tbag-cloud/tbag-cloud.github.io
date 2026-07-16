@@ -526,7 +526,7 @@ function buildItem(t) {
   }
 
   div.innerHTML = (bulkMode ? '<div class="pbar ' + t.priority + '"></div>' : '<div class="pbar ' + t.priority + '"></div>')
-    + '<div class="check-area" data-id="' + t.id + '"><div class="check-box"></div></div>'
+    + '<div class="check-area" data-id="' + t.id + '" role="checkbox" aria-checked="' + t.done + '" tabindex="0" aria-label="Toggle task state"><div class="check-box"></div></div>'
     + '<div class="todo-body">' + body + '</div>'
     + '<div class="todo-actions">' + actions + '</div>';
   return div;
@@ -699,6 +699,13 @@ function setupTodoDelegatedEvents() {
   });
 
   _elTodoList.addEventListener('keydown', e => {
+    const checkArea = e.target.closest('.check-area');
+    if (checkArea && (e.key === ' ' || e.key === 'Enter')) {
+      e.preventDefault();
+      toggleDone(checkArea.dataset.id);
+      return;
+    }
+
     const inp = e.target.closest('.edit-inp');
     if (inp) {
       if (e.key === 'Escape') { clearEditingState(); render(); }

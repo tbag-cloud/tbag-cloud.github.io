@@ -1,0 +1,3 @@
+## 2025-07-16 - Custom Controls Keyboard & Screen Reader Accessibility
+**Learning:** Custom visual elements representing checkboxes (e.g. divs or spans) often omit crucial native properties like `tabindex`, `role`, and `aria-checked`, rendering them entirely invisible to keyboard and assistive technology users. Providing only mouse click events prevents keyboard interactions (like pressing Enter or Space) from triggering actions.
+**Action:** Always verify custom interactive components have semantic ARIA roles (`role="checkbox"`), dynamic state management (`aria-checked`), entry in focus order (`tabindex="0"`), and dedicated keydown handlers with `e.preventDefault()` to stop default scrolling behaviors.
