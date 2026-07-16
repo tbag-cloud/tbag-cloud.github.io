@@ -2,6 +2,7 @@
 const LS_SETTINGS = 'todo_v3_settings';
 const DEFAULT_SETTINGS = {
   theme: 'dark',
+  density: 'comfortable',
   defaultPriority: 'medium',
   defaultFilter: 'all',
   compressEnabled: true,
@@ -55,6 +56,8 @@ function saveSettings(partial) {
 
 function applyTheme() {
   document.body.classList.toggle('light-theme', settings.theme === 'light');
+  document.body.classList.remove('density-compact', 'density-comfortable', 'density-spacious');
+  document.body.classList.add('density-' + (settings.density || 'comfortable'));
 }
 
 function applyAnimations() {
@@ -82,6 +85,9 @@ function renderSettingsPage() {
 
   document.querySelectorAll('#themeToggle .settings-toggle-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.theme === settings.theme);
+  });
+  document.querySelectorAll('#densityToggle .settings-toggle-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.density === settings.density);
   });
   document.querySelectorAll('#animToggle .settings-toggle-btn').forEach(btn => {
     btn.classList.toggle('active', (btn.dataset.anim === 'on') === settings.animationsEnabled);
@@ -254,6 +260,13 @@ function bindSettingsEvents() {
     const btn = e.target.closest('.settings-toggle-btn');
     if (!btn) return;
     saveSettings({ theme: btn.dataset.theme });
+    renderSettingsPage();
+  });
+
+  document.getElementById('densityToggle').addEventListener('click', e => {
+    const btn = e.target.closest('.settings-toggle-btn');
+    if (!btn) return;
+    saveSettings({ density: btn.dataset.density });
     renderSettingsPage();
   });
 

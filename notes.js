@@ -3,6 +3,7 @@ const LS_NOTES = 'notes_v1';
 const NOTE_COLORS = ['', 'accent', 'accent2', 'danger', 'success', 'warning'];
 let notesData = [];
 let notesArchivedView = false;
+let notesSearchQ = '';
 let pendingAttachments = [];
 const MAX_NOTE_FILE_GUEST = 5 * 1024 * 1024;
 const MAX_NOTE_FILE_SYNC = 50 * 1024 * 1024;
@@ -35,12 +36,18 @@ async function saveNotesState() {
   try {
     await sb.from('notes').delete().eq('user_id', currentUser.id);
     if (notesData.length) {
-      const rows = notesData.map(n => ({
-        user_id: currentUser.id, text: n.text, pinned: n.pinned || false,
-        color: n.color || '', archived: n.archived || false,
-        attachments: JSON.stringify(n.attachments || []),
-        created_at: n.created, updated_at: n.updated
-      }));
+      const rows = notesData.map(n => {
+        const payload = [...(n.attachments || [])];
+        if (n.todoId) {
+          payload.push({ isTodoLink: true, todoId: n.todoId });
+        }
+        return {
+          user_id: currentUser.id, text: n.text, pinned: n.pinned || false,
+          color: n.color || '', archived: n.archived || false,
+          attachments: JSON.stringify(payload),
+          created_at: n.created, updated_at: n.updated
+        };
+      });
       const { error } = await sb.from('notes').insert(rows);
       if (error) throw error;
     }
@@ -69,12 +76,18 @@ async function loadSyncedNotes() {
     renderNotes();
     return;
   }
-  notesData = (data || []).map(n => ({
-    id: n.id, text: n.text, pinned: n.pinned || false,
-    color: n.color || '', archived: n.archived || false,
-    attachments: (typeof n.attachments === 'string' ? JSON.parse(n.attachments) : (n.attachments || [])),
-    created: n.created_at, updated: n.updated_at
-  }));
+  notesData = (data || []).map(n => {
+    const rawAtts = (typeof n.attachments === 'string' ? JSON.parse(n.attachments) : (n.attachments || []));
+    const attachments = rawAtts.filter(a => !a.isTodoLink);
+    const todoLink = rawAtts.find(a => a.isTodoLink);
+    return {
+      id: n.id, text: n.text, pinned: n.pinned || false,
+      color: n.color || '', archived: n.archived || false,
+      attachments: attachments,
+      todoId: todoLink ? todoLink.todoId : null,
+      created: n.created_at, updated: n.updated_at
+    };
+  });
   await loadNoteAttachmentUrls();
   renderNotes();
 }
@@ -97,7 +110,16 @@ async function loadNoteAttachmentUrls() {
 
 function getSortedNotes() {
   const view = notesArchivedView;
-  const filtered = notesData.filter(n => view ? n.archived : !n.archived);
+  let filtered = notesData.filter(n => view ? n.archived : !n.archived);
+
+  if (typeof notesSearchQ !== 'undefined' && notesSearchQ) {
+    const q = notesSearchQ.toLowerCase();
+    filtered = filtered.filter(n =>
+      n.text.toLowerCase().includes(q) ||
+      (n.attachments || []).some(a => (a.name || '').toLowerCase().includes(q))
+    );
+  }
+
   return filtered.sort((a, b) => {
     if (a.pinned && !b.pinned) return -1;
     if (!a.pinned && b.pinned) return 1;
@@ -134,6 +156,21 @@ function markdownToHtml(text) {
   return h;
 }
 
+function getLocalDateString(isoStr) {
+  const date = new Date(isoStr);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  if (date.toDateString() === today.toDateString()) {
+    return 'Today';
+  } else if (date.toDateString() === yesterday.toDateString()) {
+    return 'Yesterday';
+  } else {
+    return date.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+}
+
 function renderNotes() {
   const list = document.getElementById('notesList');
   const empty = document.getElementById('notesEmpty');
@@ -159,26 +196,75 @@ function renderNotes() {
 
   let html = '';
   let lastPinned = null;
+  let lastDateGroup = null;
   for (const n of sorted) {
-    if (n.pinned && lastPinned === null) { html += '<div class="notes-pinned-header">📌 Pinned</div>'; lastPinned = true; }
-    if (!n.pinned && lastPinned === true) { html += '<div class="notes-divider"></div>'; lastPinned = false; }
+    if (n.pinned && lastPinned === null) {
+      html += '<div class="notes-pinned-header">📌 Pinned</div>';
+      lastPinned = true;
+    }
+    if (!n.pinned && lastPinned === true) {
+      html += '<div class="notes-divider"></div>';
+      lastPinned = false;
+    }
+
+    if (!n.pinned) {
+      const dateStr = getLocalDateString(n.created);
+      if (dateStr !== lastDateGroup) {
+        lastDateGroup = dateStr;
+        html += '<div class="notes-date-separator">' + dateStr + '</div>';
+      }
+    }
+
     html += renderNoteBubble(n);
   }
   list.innerHTML = html;
 }
 
+async function convertNoteToTask(noteId) {
+  const note = notesData.find(n => n.id === noteId);
+  if (!note || note.todoId) return;
+
+  const todoObj = await addTodo(note.text, 'medium', '');
+  if (todoObj) {
+    note.todoId = todoObj.id;
+    await saveNotesState();
+    renderNotes();
+    toast('Converted to task!');
+  }
+}
+
 function renderNoteBubble(n) {
   const colorStyle = n.color ? 'border-left-color:var(--' + n.color + ')' : '';
-  return '<div class="note-bubble' + (n.pinned ? ' pinned' : '') + '" data-id="' + n.id + '" style="' + colorStyle + '">'
+  const isGuest = (typeof _realMode !== 'undefined' ? _realMode === 'guest' : true);
+  const ticks = isGuest
+    ? '<span class="note-tick guest-tick" style="color:var(--muted);margin-left:4px;" title="Saved locally">✓</span>'
+    : '<span class="note-tick synced-tick" style="color:var(--green);margin-left:4px;font-weight:bold;" title="Synced to cloud">✓✓</span>';
+
+  let todoHtml = '';
+  if (n.todoId) {
+    const linkedTodo = (typeof todos !== 'undefined' ? todos : []).find(t => t.id === n.todoId);
+    if (linkedTodo) {
+      todoHtml = '<div class="note-linked-todo' + (linkedTodo.done ? ' done' : '') + '" data-todo-id="' + linkedTodo.id + '">'
+        + '<span class="note-todo-check">' + (linkedTodo.done ? '✓' : '○') + '</span>'
+        + '<span class="note-todo-text">' + escHtml(linkedTodo.text) + '</span>'
+        + '</div>';
+    }
+  }
+
+  const convertBtn = n.todoId ? '' : '<button class="note-btn convert-task" title="Convert to Task">📋</button>';
+
+  return '<div class="note-bubble' + (n.pinned ? ' pinned' : ' chat-bubble') + '" data-id="' + n.id + '" style="' + colorStyle + '">'
     + '<div class="note-text">' + markdownToHtml(n.text) + '</div>'
     + renderNoteAttachments(n)
+    + todoHtml
     + '<div class="note-actions">'
     + '<button class="note-btn pin" title="' + (n.pinned ? 'Unpin' : 'Pin') + '">📌</button>'
     + '<button class="note-btn attach" title="Attach">📎</button>'
     + '<button class="note-btn color" title="Color">🎨</button>'
+    + convertBtn
     + '<button class="note-btn archive" title="' + (n.archived ? 'Restore' : 'Archive') + '">' + (n.archived ? '📂' : '📦') + '</button>'
     + '<button class="note-btn delete" title="Delete">🗑</button>'
-    + '<span class="note-time">' + fmtRelTime(n.updated || n.created) + '</span>'
+    + '<span class="note-time">' + fmtRelTime(n.updated || n.created) + ticks + '</span>'
     + '</div></div>';
 }
 
@@ -213,12 +299,28 @@ function renderNoteAttachments(n) {
 async function addNote(text) {
   text = text.trim();
   if (!text && !pendingAttachments.length) return;
+
+  let todoIdLinked = null;
+  let parsedText = text;
+
+  if (text.startsWith('/todo ') || text.startsWith('[] ')) {
+    const isSlash = text.startsWith('/todo ');
+    const todoText = text.substring(isSlash ? 6 : 3).trim();
+    if (todoText) {
+      const todoObj = await addTodo(todoText, 'medium', '');
+      if (todoObj) {
+        todoIdLinked = todoObj.id;
+        parsedText = (isSlash ? '📋 Added task: ' : '📋 ') + todoText;
+      }
+    }
+  }
+
   const now = new Date().toISOString();
   const attachments = [];
   for (const f of pendingAttachments) {
     attachments.push(await processAttachment(f));
   }
-  const note = { id: noteId(), text, pinned: false, color: '', archived: false, attachments, created: now, updated: now };
+  const note = { id: noteId(), text: parsedText, pinned: false, color: '', archived: false, attachments, created: now, updated: now, todoId: todoIdLinked };
   notesData.unshift(note);
   if (await saveNotesState()) {
     pendingAttachments = [];
@@ -434,10 +536,20 @@ document.addEventListener('click', async e => {
     if (e.target.closest('.note-btn.pin')) { await togglePin(id); return; }
     if (e.target.closest('.note-btn.attach')) { await handleNoteAttach(id); return; }
     if (e.target.closest('.note-btn.color')) { await cycleColor(id); return; }
+    if (e.target.closest('.note-btn.convert-task')) { await convertNoteToTask(id); return; }
     if (e.target.closest('.note-btn.archive')) { await toggleArchive(id); return; }
     if (e.target.closest('.note-btn.delete')) {
       if (!await (typeof showConfirm === 'function' ? showConfirm('Delete this note?') : Promise.resolve(confirm('Delete this note?')))) return;
       await deleteNote(id);
+      return;
+    }
+  }
+  const linkedTodo = e.target.closest('.note-linked-todo');
+  if (linkedTodo) {
+    const todoId = linkedTodo.dataset.todoId;
+    if (todoId && typeof toggleDone === 'function') {
+      await toggleDone(todoId);
+      renderNotes();
       return;
     }
   }
@@ -456,4 +568,24 @@ function initNotes() {
   renderNotes();
   const toggle = document.getElementById('notesArchiveToggle');
   if (toggle && !toggle._listening) { toggle._listening = true; toggle.addEventListener('click', toggleArchivedView); }
+
+  const notesSearchInp = document.getElementById('notesSearchInp');
+  const notesSearchClear = document.getElementById('notesSearchClear');
+  if (notesSearchInp && !notesSearchInp._listening) {
+    notesSearchInp._listening = true;
+    notesSearchInp.addEventListener('input', e => {
+      notesSearchQ = e.target.value.trim();
+      if (notesSearchClear) notesSearchClear.className = 'search-clear' + (notesSearchQ ? ' vis' : '');
+      renderNotes();
+    });
+  }
+  if (notesSearchClear && !notesSearchClear._listening) {
+    notesSearchClear._listening = true;
+    notesSearchClear.addEventListener('click', () => {
+      notesSearchQ = '';
+      if (notesSearchInp) notesSearchInp.value = '';
+      notesSearchClear.className = 'search-clear';
+      renderNotes();
+    });
+  }
 }
