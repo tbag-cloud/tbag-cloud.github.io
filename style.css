@@ -133,6 +133,8 @@ h1 span{color:var(--accent);}
 .pbar.medium{background:var(--accent);}
 .pbar.low{background:var(--muted);}
 .check-area{display:flex;align-items:flex-start;justify-content:center;cursor:pointer;padding:15px 0 13px 12px;}
+.check-area:focus{outline:none;}
+.check-area:focus-visible .check-box{outline:2px solid var(--accent);outline-offset:2px;}
 .check-box{width:20px;height:20px;border:1px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;transition:border-color 0.15s,background 0.15s;flex-shrink:0;margin-top:2px;}
 .todo-item:hover .check-box{border-color:var(--accent);}
 .todo-item.done .check-box{background:var(--accent);border-color:var(--accent);}
@@ -310,6 +312,8 @@ input[type=file]{display:none;}
 .wl-card.done{opacity:0.4;}
 .wl-card-top{display:flex;align-items:center;gap:8px;}
 .wl-check{flex-shrink:0;width:16px;height:16px;border:1px solid var(--border);border-radius:3px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.6rem;color:var(--muted);transition:border-color 0.12s,background 0.12s;}
+.wl-check:focus{outline:none;}
+.wl-check:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
 .wl-check:hover{border-color:var(--accent);}
 .wl-card.done .wl-check{background:var(--accent);border-color:var(--accent);color:white;}
 .wl-title{flex:1;font-size:0.82rem;color:var(--text);word-break:break-word;line-height:1.4;min-width:0;}
