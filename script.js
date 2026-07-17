@@ -5,7 +5,7 @@ const MAX_GUEST_FILE = 5 * 1024 * 1024;
 const MAX_SYNC_FILE  = 50 * 1024 * 1024;
 const SYNC_STORAGE_LIMIT = 1024 * 1024 * 1024;
 const ADMIN_EMAILS = ['themiplayz1@gmail.com'];
-const APP_VERSION = '1.20.2';
+const APP_VERSION = '1.21.0';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
