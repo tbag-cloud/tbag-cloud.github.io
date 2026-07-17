@@ -1,0 +1,5 @@
+## 2026-07-16 - WhatsApp Productivity Chat Flow with Dynamic UI Density
+
+**Learning:** When developing mobile-to-PC productivity features inspired by popular chat interfaces (like WhatsApp), visual clarity and text-contrast must remain paramount to avoid cognitive fatigue. Introducing custom typography and CSS variable-driven layout density levels ('compact', 'comfortable', 'spacious') allows users to adjust UI information density to their visual comfort, dramatically improving usability. Furthermore, two-way interactive synchronization of checkboxes inside chat bubbles maintains a high level of delight and direct manipulation.
+
+**Action:** Scaled the typography and spacing of the app using dynamic CSS variables mapped to the user's selected layout density. Grouped notes under chronological date headers ("Today", "Yesterday") and added single/double ticks for real-time cloud sync indicators. Integrated automatic and manual note-to-task conversions where checking off task checkboxes instantly triggers direct updates across both the chat flow and the main task list.

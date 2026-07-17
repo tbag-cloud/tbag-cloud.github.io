@@ -13,13 +13,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="preconnect" href="https://hxkjwebubmdqjzwmnvrh.supabase.co">
-  <script>var _v='1.20.2';var _s=localStorage.getItem('app_version');if(_s&&_s!==_v){localStorage.setItem('app_version',_v);Promise.all([caches.keys().then(function(k){return Promise.all(k.map(function(x){return caches.delete(x)}))}),navigator.serviceWorker&&navigator.serviceWorker.getRegistration().then(function(r){return r&&r.unregister()})]).catch(function(){}).then(function(){location.reload()})}else if(!_s)localStorage.setItem('app_version',_v);</script>
+  <script>var _v='1.21.0';var _s=localStorage.getItem('app_version');if(_s&&_s!==_v){localStorage.setItem('app_version',_v);Promise.all([caches.keys().then(function(k){return Promise.all(k.map(function(x){return caches.delete(x)}))}),navigator.serviceWorker&&navigator.serviceWorker.getRegistration().then(function(r){return r&&r.unregister()})]).catch(function(){}).then(function(){location.reload()})}else if(!_s)localStorage.setItem('app_version',_v);</script>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="style.css?v=1.20.2">
+<link rel="stylesheet" href="style.css?v=1.21.0">
 </head>
 <body>
 
@@ -280,6 +280,10 @@
     <div class="notes-hero-actions">
       <button class="notes-toggle-btn" id="notesArchiveToggle" type="button">📦 ARCHIVED</button>
     </div>
+    <div class="search-wrap">
+      <input class="search-inp" id="notesSearchInp" placeholder="search notes..." autocomplete="off">
+      <button class="search-clear" id="notesSearchClear">×</button>
+    </div>
     <div id="notesInputContainer"></div>
     <div class="notes-list" id="notesList"></div>
     <div class="notes-empty" id="notesEmpty" style="display:none">
@@ -297,6 +301,14 @@
         <div class="settings-toggle-group" id="themeToggle">
           <button class="settings-toggle-btn active" data-theme="dark">Dark</button>
           <button class="settings-toggle-btn" data-theme="light">Light</button>
+        </div>
+      </div>
+      <div class="settings-row">
+        <span class="settings-label">Density</span>
+        <div class="settings-toggle-group" id="densityToggle">
+          <button class="settings-toggle-btn" data-density="compact">Compact</button>
+          <button class="settings-toggle-btn active" data-density="comfortable">Comfortable</button>
+          <button class="settings-toggle-btn" data-density="spacious">Spacious</button>
         </div>
       </div>
       <div class="settings-row">
@@ -432,14 +444,14 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="app-pages.js?v=1.20.2"></script>
-<script src="watchlist.js?v=1.20.2"></script>
-<script src="admin.js?v=1.20.2"></script>
-<script src="settings.js?v=1.20.2"></script>
-<script src="todo.js?v=1.20.2"></script>
-<script src="notes.js?v=1.20.2"></script>
-<script src="script.js?v=1.20.2"></script>
-<script src="drive.js?v=1.20.2"></script>
+<script src="app-pages.js?v=1.21.0"></script>
+<script src="watchlist.js?v=1.21.0"></script>
+<script src="admin.js?v=1.21.0"></script>
+<script src="settings.js?v=1.21.0"></script>
+<script src="todo.js?v=1.21.0"></script>
+<script src="notes.js?v=1.21.0"></script>
+<script src="script.js?v=1.21.0"></script>
+<script src="drive.js?v=1.21.0"></script>
 </body>
 </html>
 

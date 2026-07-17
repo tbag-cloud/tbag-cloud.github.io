@@ -98,18 +98,38 @@ function newTodo(text, priority, desc) {
   return { id: uid(), text: text.trim(), desc: desc.trim(), priority, done: false, created: new Date().toISOString(), archived: false, due: null, tags: [], repeat: null, subtasks: [] };
 }
 async function addTodo(text, priority, desc) {
-  text = text.trim(); if (!text) return;
-  const todo = newTodo(text, priority, desc);
+  text = text.trim(); if (!text) return null;
+
+  const parsed = typeof parseNaturalLanguageTask === 'function'
+    ? parseNaturalLanguageTask(text)
+    : { text, priority: null, tags: [], due: null };
+
+  const todo = newTodo(parsed.text, parsed.priority || priority, desc);
+  if (parsed.tags && parsed.tags.length) {
+    todo.tags = parsed.tags;
+  }
+  if (parsed.due) {
+    todo.due = parsed.due;
+  }
+
   if (typeof _realMode !== 'undefined' ? _realMode === 'guest' : true) {
     todos.unshift(todo);
     saveGuest(); render();
+    return todo;
   } else {
     dot('syncing');
     const { error } = await sb.from('todos').insert({
-      user_id: currentUser.id, text, description: desc.trim(), priority, done: false, metadata: metaPayload(todo)
+      id: todo.id,
+      user_id: currentUser.id,
+      text: todo.text,
+      description: desc.trim(),
+      priority: todo.priority,
+      done: false,
+      metadata: metaPayload(todo)
     });
-    if (error) { dot('err'); toast('add failed: ' + error.message, 'var(--danger)'); return; }
+    if (error) { dot('err'); toast('add failed: ' + error.message, 'var(--danger)'); return null; }
     await loadSynced();
+    return todo;
   }
 }
 
