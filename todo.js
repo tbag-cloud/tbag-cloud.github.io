@@ -99,7 +99,19 @@ function newTodo(text, priority, desc) {
 }
 async function addTodo(text, priority, desc) {
   text = text.trim(); if (!text) return null;
-  const todo = newTodo(text, priority, desc);
+
+  const parsed = typeof parseNaturalLanguageTask === 'function'
+    ? parseNaturalLanguageTask(text)
+    : { text, priority: null, tags: [], due: null };
+
+  const todo = newTodo(parsed.text, parsed.priority || priority, desc);
+  if (parsed.tags && parsed.tags.length) {
+    todo.tags = parsed.tags;
+  }
+  if (parsed.due) {
+    todo.due = parsed.due;
+  }
+
   if (typeof _realMode !== 'undefined' ? _realMode === 'guest' : true) {
     todos.unshift(todo);
     saveGuest(); render();
@@ -109,9 +121,9 @@ async function addTodo(text, priority, desc) {
     const { error } = await sb.from('todos').insert({
       id: todo.id,
       user_id: currentUser.id,
-      text,
+      text: todo.text,
       description: desc.trim(),
-      priority,
+      priority: todo.priority,
       done: false,
       metadata: metaPayload(todo)
     });

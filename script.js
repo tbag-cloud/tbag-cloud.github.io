@@ -355,6 +355,80 @@ function updateSidebarStorage() {
   }
 }
 
+function parseNaturalLanguageTask(text) {
+  let cleaned = text;
+  let priority = null;
+  let tags = [];
+  let due = null;
+
+  // 1. Parse Priority (!high, !med, !low)
+  const priRegex = /!(high|medium|med|low)\b/i;
+  const priMatch = cleaned.match(priRegex);
+  if (priMatch) {
+    const val = priMatch[1].toLowerCase();
+    priority = (val === 'med' || val === 'medium') ? 'high' : val; // Match priority values exactly
+    if (val === 'low') priority = 'low';
+    if (val === 'med' || val === 'medium') priority = 'medium';
+    if (val === 'high') priority = 'high';
+    cleaned = cleaned.replace(priRegex, '');
+  }
+
+  // 2. Parse Tags (#tag)
+  const tagRegex = /#([a-zA-Z0-9_-]+)\b/g;
+  let tagMatch;
+  while ((tagMatch = tagRegex.exec(cleaned)) !== null) {
+    tags.push(tagMatch[1]);
+  }
+  cleaned = cleaned.replace(tagRegex, '');
+
+  // 3. Parse Due Dates (today, tomorrow, weekday)
+  const now = new Date();
+
+  const getNextWeekday = (dayName) => {
+    const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const targetIdx = weekdays.indexOf(dayName.toLowerCase());
+    if (targetIdx === -1) return null;
+
+    const resultDate = new Date(now);
+    const currentIdx = now.getDay();
+    let daysToAdd = targetIdx - currentIdx;
+    if (daysToAdd <= 0) {
+      daysToAdd += 7;
+    }
+    resultDate.setDate(now.getDate() + daysToAdd);
+    return resultDate.toISOString().slice(0, 10);
+  };
+
+  const dueWords = [
+    { word: /\btoday\b/i, getDate: () => now.toISOString().slice(0, 10) },
+    { word: /\btomorrow\b/i, getDate: () => {
+        const d = new Date(now);
+        d.setDate(now.getDate() + 1);
+        return d.toISOString().slice(0, 10);
+      }
+    },
+    { word: /\bmonday\b/i, getDate: () => getNextWeekday('monday') },
+    { word: /\btuesday\b/i, getDate: () => getNextWeekday('tuesday') },
+    { word: /\bwednesday\b/i, getDate: () => getNextWeekday('wednesday') },
+    { word: /\bthursday\b/i, getDate: () => getNextWeekday('thursday') },
+    { word: /\bfriday\b/i, getDate: () => getNextWeekday('friday') },
+    { word: /\bsaturday\b/i, getDate: () => getNextWeekday('saturday') },
+    { word: /\bsunday\b/i, getDate: () => getNextWeekday('sunday') }
+  ];
+
+  for (const item of dueWords) {
+    if (item.word.test(cleaned)) {
+      due = item.getDate();
+      cleaned = cleaned.replace(item.word, '');
+      break;
+    }
+  }
+
+  cleaned = cleaned.replace(/\s+/g, ' ').trim();
+
+  return { text: cleaned, priority, tags, due };
+}
+
 // ── AUTH ──────────────────────────────────────────────────────────────────────
 sb.auth.onAuthStateChange((event, session) => {
   if (session) {
