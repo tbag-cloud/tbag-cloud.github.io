@@ -65,7 +65,6 @@ function applyAnimations() {
 }
 
 function applyDefaults() {
-  document.getElementById('newPri').value = settings.defaultPriority;
   const filterBtn = document.querySelector('.filter-btn[data-f="' + settings.defaultFilter + '"]');
   if (filterBtn) {
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));

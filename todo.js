@@ -786,40 +786,180 @@ function setupTodoDelegatedEvents() {
 
 setupTodoDelegatedEvents();
 
-// ── ADD FORM ──────────────────────────────────────────────────────────────────
-const newDesc = document.getElementById('newDesc');
-newDesc.addEventListener('input', () => {
-  if (newDesc.scrollHeight) { newDesc.style.height = 'auto'; newDesc.style.height = Math.min(newDesc.scrollHeight, 120) + 'px'; }
-});
-function doAdd() {
-  const text = document.getElementById('newTask').value.trim(); if (!text) return;
-  addTodo(text, document.getElementById('newPri').value, newDesc.value);
-  document.getElementById('newTask').value = ''; newDesc.value = ''; newDesc.style.height = 'auto';
-  document.getElementById('newTask').focus();
+// ── SPOTLIGHT QUICK-ADD MODAL ──────────────────────────────────────────────────
+const quickAddModal = document.getElementById('quickAddModal');
+const fabBtn = document.getElementById('fabBtn');
+const quickAddCloseBtn = document.getElementById('quickAddCloseBtn');
+const quickAddTaskInput = document.getElementById('quickAddTaskInput');
+const quickAddDescInput = document.getElementById('quickAddDescInput');
+const quickAddPriority = document.getElementById('quickAddPriority');
+const quickAddDueDate = document.getElementById('quickAddDueDate');
+const quickAddSubmitBtn = document.getElementById('quickAddSubmitBtn');
+
+function openQuickAddModal() {
+  if (!quickAddModal) return;
+  quickAddModal.classList.add('open');
+  if (quickAddPriority) {
+    quickAddPriority.value = (settings && settings.defaultPriority) || 'medium';
+  }
+  if (quickAddDueDate) quickAddDueDate.value = '';
+  if (quickAddTaskInput) {
+    quickAddTaskInput.value = '';
+    setTimeout(() => quickAddTaskInput.focus(), 100);
+  }
+  if (quickAddDescInput) quickAddDescInput.value = '';
 }
-document.getElementById('btnAdd').addEventListener('click', doAdd);
-document.getElementById('newTask').addEventListener('keydown', e => { if (e.key === 'Enter') doAdd(); });
+
+function closeQuickAddModal() {
+  if (!quickAddModal) return;
+  quickAddModal.classList.remove('open');
+}
+
+async function submitQuickAdd() {
+  if (!quickAddTaskInput) return;
+  const text = quickAddTaskInput.value.trim();
+  if (!text) return;
+  const desc = quickAddDescInput ? quickAddDescInput.value.trim() : '';
+  const priority = quickAddPriority ? quickAddPriority.value : 'medium';
+  const dueDate = quickAddDueDate ? quickAddDueDate.value : null;
+
+  const todoObj = await addTodo(text, priority, desc);
+  if (todoObj && dueDate) {
+    // If date was explicitly set in picker, override whatever parser got
+    todoObj.due = dueDate;
+    if (typeof _realMode !== 'undefined' && _realMode === 'synced') {
+      await sb.from('todos').update({ metadata: metaPayload(todoObj) }).eq('id', todoObj.id).eq('user_id', currentUser.id);
+    } else {
+      saveGuest();
+    }
+    render();
+  }
+  closeQuickAddModal();
+}
+
+if (fabBtn) {
+  fabBtn.addEventListener('click', openQuickAddModal);
+}
+if (quickAddCloseBtn) {
+  quickAddCloseBtn.addEventListener('click', closeQuickAddModal);
+}
+if (quickAddModal) {
+  quickAddModal.addEventListener('click', e => {
+    if (e.target === quickAddModal) {
+      closeQuickAddModal();
+    }
+  });
+}
+if (quickAddSubmitBtn) {
+  quickAddSubmitBtn.addEventListener('click', submitQuickAdd);
+}
+if (quickAddTaskInput) {
+  quickAddTaskInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      submitQuickAdd();
+    }
+  });
+}
+if (quickAddDescInput) {
+  quickAddDescInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      submitQuickAdd();
+    }
+  });
+}
 
 // ── GLOBAL KEYBOARD SHORTCUTS ────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
-  // Ignore if typing in an input/textarea
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
-  if (e.ctrlKey || e.metaKey) {
-    if (e.key === 'z') { popUndo(); e.preventDefault(); }
+  // 1. Esc to close everything
+  if (e.key === 'Escape') {
+    const isModalOpen = quickAddModal && quickAddModal.classList.contains('open');
+    if (isModalOpen) {
+      closeQuickAddModal();
+      e.preventDefault();
+      return;
+    }
+    const sidebar = document.getElementById('sidebar');
+    const isDrawerOpen = sidebar && sidebar.classList.contains('open');
+    if (isDrawerOpen) {
+      toggleMobileDrawer(false);
+      e.preventDefault();
+      return;
+    }
+    if (bulkMode) { toggleBulkMode(); e.preventDefault(); return; }
+    if (editingId) { clearEditingState(); render(); e.preventDefault(); return; }
+    if (noteEditingId) { noteEditingId = null; render(); e.preventDefault(); return; }
+    closeAppMenu();
+  }
+
+  // 2. Ctrl/Cmd + Enter to Submit Modal or forms
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    const isModalOpen = quickAddModal && quickAddModal.classList.contains('open');
+    if (isModalOpen) {
+      submitQuickAdd();
+      e.preventDefault();
+      return;
+    }
+  }
+
+  // 3. Ctrl/Cmd + K for search focus
+  if ((e.key === 'k' || e.key === 'K') && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    if (currentPage === 'todo') {
+      const inp = document.getElementById('searchInp');
+      if (inp) inp.focus();
+    } else if (currentPage === 'notes') {
+      const inp = document.getElementById('notesSearchInp');
+      if (inp) inp.focus();
+    } else if (currentPage === 'drive') {
+      const inp = document.getElementById('driveSearchInp');
+      if (inp) inp.focus();
+    }
     return;
   }
-  if (e.key === 'n' && currentPage === 'todo') {
+
+  // Check if writing in inputs
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+
+  // Undo (Ctrl/Cmd + Z)
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === 'z' || e.key === 'Z') { popUndo(); e.preventDefault(); }
+    return;
+  }
+
+  // N key or Alt+N to open spotlight Quick-Add Task modal
+  if (e.key === 'n' || e.key === 'N') {
     e.preventDefault();
-    const inp = document.getElementById('newTask');
-    if (inp) inp.focus();
+    openQuickAddModal();
+    return;
   }
-  if (e.key === '/' && currentPage === 'todo') {
+
+  // G then key quick page switching (Notion-style navigation)
+  if (e.key === '1' && e.altKey) { e.preventDefault(); setPage('todo'); return; }
+  if (e.key === '2' && e.altKey) { e.preventDefault(); setPage('drive'); return; }
+  if (e.key === '3' && e.altKey) { e.preventDefault(); setPage('notes'); return; }
+  if (e.key === '4' && e.altKey) { e.preventDefault(); setPage('watchlist'); return; }
+  if (e.key === '5' && e.altKey) { e.preventDefault(); setPage('settings'); return; }
+
+  // / key to focus search
+  if (e.key === '/') {
     e.preventDefault();
-    document.getElementById('searchInp').focus();
+    const sInp = document.getElementById('searchInp');
+    if (sInp) sInp.focus();
+    return;
   }
-  if (e.key === 'b' && currentPage === 'todo') {
-    e.preventDefault(); toggleBulkMode();
+
+  // B key for bulk mode toggle
+  if (e.key === 'b' || e.key === 'B') {
+    if (currentPage === 'todo') {
+      e.preventDefault();
+      toggleBulkMode();
+    }
+    return;
   }
+
+  // J/K navigation
   if ((e.key === 'j' || e.key === 'k') && currentPage === 'todo') {
     e.preventDefault();
     const items = _elTodoList.querySelectorAll('.todo-item');
@@ -831,12 +971,6 @@ document.addEventListener('keydown', e => {
     focusedItemId = ids[nextIdx];
     items.forEach(el => el.classList.toggle('focused', el.dataset.id === focusedItemId));
     items[nextIdx].scrollIntoView({ block: 'nearest' });
-  }
-  if (e.key === 'Escape') {
-    if (bulkMode) { toggleBulkMode(); return; }
-    if (editingId) { clearEditingState(); render(); return; }
-    if (noteEditingId) { noteEditingId = null; render(); return; }
-    closeAppMenu();
   }
 });
 

@@ -23,6 +23,8 @@
 </head>
 <body>
 
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
 <nav class="sidebar" id="sidebar">
     <div class="sidebar-inner">
       <div class="sidebar-head">
@@ -169,19 +171,6 @@
     <div class="search-wrap">
       <input class="search-inp" id="searchInp" placeholder="search tasks..." autocomplete="off">
       <button class="search-clear" id="searchClear">×</button>
-    </div>
-
-    <div class="add-form">
-      <div class="add-form-top">
-        <input type="text" id="newTask" placeholder="new task..." maxlength="300" autocomplete="off">
-        <select class="priority-select" id="newPri">
-          <option value="low">LOW</option>
-          <option value="medium" selected>MED</option>
-          <option value="high">HIGH</option>
-        </select>
-        <button class="add-btn" id="btnAdd">+</button>
-      </div>
-      <textarea id="newDesc" placeholder="description (optional)..." maxlength="1000" rows="1"></textarea>
     </div>
 
     <div class="todo-list" id="todoList"></div>
@@ -441,6 +430,49 @@
     </div>
   </div>
 </div>
+
+<!-- QUICK-ADD SPOTLIGHT MODAL -->
+<div class="modal-overlay" id="quickAddModal">
+  <div class="modal-container">
+    <div class="quick-add-form">
+      <div class="quick-add-header">
+        <h3 class="quick-add-title">// QUICK ADD TASK</h3>
+        <button class="quick-add-close" id="quickAddCloseBtn" type="button">×</button>
+      </div>
+      <div class="quick-add-body">
+        <div class="quick-add-input-wrap">
+          <label for="quickAddTaskInput">Task Text</label>
+          <input class="quick-add-text-input" id="quickAddTaskInput" placeholder="Task text (supports natural language e.g. !high #work tomorrow)..." autocomplete="off" required>
+        </div>
+        <div class="quick-add-input-wrap">
+          <label for="quickAddDescInput">Description (Optional)</label>
+          <textarea class="quick-add-textarea" id="quickAddDescInput" placeholder="Add additional details..."></textarea>
+        </div>
+        <div class="quick-add-grid">
+          <div class="quick-add-input-wrap">
+            <label for="quickAddPriority">Priority</label>
+            <select class="quick-add-select" id="quickAddPriority">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+          <div class="quick-add-input-wrap">
+            <label for="quickAddDueDate">Due Date</label>
+            <input class="quick-add-text-input" id="quickAddDueDate" type="date">
+          </div>
+        </div>
+      </div>
+      <div class="quick-add-footer">
+        <span class="quick-add-shortcuts">Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to save</span>
+        <button class="quick-add-submit-btn" id="quickAddSubmitBtn" type="button">ADD TASK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FLOATING ACTION BUTTON (FAB) -->
+<button class="fab-btn" id="fabBtn" title="Quick Add Task">+</button>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 

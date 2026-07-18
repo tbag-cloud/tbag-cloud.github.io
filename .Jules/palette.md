@@ -1,5 +1,5 @@
-## 2026-07-16 - WhatsApp Productivity Chat Flow with Dynamic UI Density
+## Palette 🎨 Learning Record
 
-**Learning:** When developing mobile-to-PC productivity features inspired by popular chat interfaces (like WhatsApp), visual clarity and text-contrast must remain paramount to avoid cognitive fatigue. Introducing custom typography and CSS variable-driven layout density levels ('compact', 'comfortable', 'spacious') allows users to adjust UI information density to their visual comfort, dramatically improving usability. Furthermore, two-way interactive synchronization of checkboxes inside chat bubbles maintains a high level of delight and direct manipulation.
-
-**Action:** Scaled the typography and spacing of the app using dynamic CSS variables mapped to the user's selected layout density. Grouped notes under chronological date headers ("Today", "Yesterday") and added single/double ticks for real-time cloud sync indicators. Integrated automatic and manual note-to-task conversions where checking off task checkboxes instantly triggers direct updates across both the chat flow and the main task list.
+## 2026-07-18 - Premium Spotlight Modal & Mobile Responsive Drawer Navigation
+*   **Learning:** Heavy static input forms at the top of a task tracker significantly degrade aesthetic appeal, layout flow, and visual balance. Designing a floating action button (FAB) trigger paired with a Spotlight-style modal (Linear style) with fully styled container backdrops makes the interface cleaner. Responsive navigation transitions from standard fixed sidebars on desktop to slide-out drawers on mobile using hardware-accelerated CSS `transform: translateX()` and frosted backdrop filters enhance tactile quality and ergonomics.
+*   **Action:** Removed static task creation forms, implemented fixed bottom-right action triggers, developed responsive viewport drawer navigation in `script.js` and `style.css`, and finalized AA-compliant styling contrast ratios.
