@@ -772,15 +772,50 @@ document.getElementById('adminPanelToggle').addEventListener('click', () => {
   adminPanelOpen = !adminPanelOpen;
   updateAdminPanelState();
 });
+function toggleMobileDrawer(open) {
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebarBackdrop');
+  if (!sidebar || !backdrop) return;
+  if (open) {
+    sidebar.classList.add('open');
+    backdrop.classList.add('open');
+    backdrop.style.display = 'block';
+  } else {
+    sidebar.classList.remove('open');
+    backdrop.classList.remove('open');
+    setTimeout(() => {
+      if (!sidebar.classList.contains('open')) {
+        backdrop.style.display = 'none';
+      }
+    }, 250);
+  }
+}
+
 document.getElementById('menuToggle').addEventListener('click', e => {
   e.stopPropagation();
-  const menu = document.getElementById('appMenu');
-  menu.style.display = menu.style.display === 'none' ? 'flex' : 'none';
+  const sidebar = document.getElementById('sidebar');
+  const isOpen = sidebar && sidebar.classList.contains('open');
+  toggleMobileDrawer(!isOpen);
 });
-document.querySelectorAll('.app-menu-item').forEach(btn => btn.addEventListener('click', () => setPage(btn.dataset.page)));
+
+const backdropEl = document.getElementById('sidebarBackdrop');
+if (backdropEl) {
+  backdropEl.addEventListener('click', () => {
+    toggleMobileDrawer(false);
+  });
+}
+
+document.querySelectorAll('.app-menu-item').forEach(btn => btn.addEventListener('click', () => {
+  setPage(btn.dataset.page);
+  toggleMobileDrawer(false);
+}));
+
 document.getElementById('sidebar').addEventListener('click', e => {
   const btn = e.target.closest('.sidebar-btn[data-page]');
-  if (btn) setPage(btn.dataset.page);
+  if (btn) {
+    setPage(btn.dataset.page);
+    toggleMobileDrawer(false);
+  }
 });
 
 document.addEventListener('click', e => {
